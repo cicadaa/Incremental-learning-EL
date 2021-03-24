@@ -3,8 +3,10 @@ import requests
 import json
 import psycopg2
 from datetime import datetime
+from dateutil import tz
 
-__all__ = ['DMIRetriever', 'SQLRetriever']
+
+__all__ = ['DMIRetriever', 'SQLRetriever', 'DataRetriever']
 
 
 class DMIRetriever:
@@ -25,18 +27,26 @@ class DMIRetriever:
             field=field, startDate=startDate, endDate=endDate, stationId=stationId, limit=limit)
         try:
             r = requests.get(self.urlDMI, params=query)
+            print(r)
+
         except requests.exceptions.RequestException as e:
             raise SystemExit(e)
 
         if r.status_code != 200:
+            print(r.status_code)
             raise ValueError(str(r))
         json = r.json()
 
         # json to dataframe
         df = pd.DataFrame(json)
+
+        # clean data
         df['time'] = pd.to_datetime(df['timeObserved'], unit='us', utc=False)
         df = df.drop(['_id', 'timeCreated', 'timeObserved',
                       'stationId', 'parameterId'], axis=1)
+        df.columns = ['temp', 'datetime']
+        df = df.set_index('datetime')
+        df.sort_index(ascending=True)
         return df
 
     def __generateDMIQuery(self, startDate, endDate, stationId, field, limit) -> dict:
@@ -93,6 +103,11 @@ class SQLRetriever:
                     row[columns[j]] = data[j]
                 i += 1
 
+            # clean df
+            df.columns = ['datetime', 'meter']
+            df['datetime'] = df['datetime'].apply(
+                lambda x: datetime.strptime(x.strftime("%Y-%m-%d %H:%M:%S"), "%Y-%m-%d %H:%M:%S"))
+            df = df.set_index('datetime')
             return df
 
         except (Exception, psycopg2.Error) as error:
@@ -106,13 +121,25 @@ class SQLRetriever:
                 print("PostgreSQL connection is closed")
 
 
-# if __name__ == '__main__':
-#     httpRetiever = DMIRetriever(path='apikey.txt', url='')
-#     df = httpRetiever.getWeatherData(startDate="2019-01-01", endDate="2019-01-02",
-#                                      stationId="06123", field="temp_mean_past1h", limit='10')
-#     print(df.head())
+class DataRetriever:
+    def __init__(self, path, url):
+        self.dmiRetriever = DMIRetriever(path=path, url=url)
+        self.sqlRetriever = SQLRetriever()
 
-#     # sqlRetriever = SQLRetriever()
-#     # df = sqlRetriever.getConsumption(columns=['datetime', 'sum'], table='consumptionAggregated',
-#     #                                  startDate='2019-03-01', endDate='2019-03-02')
-#     # print(df.head())
+    def getChunckData(self, startDate, endDate) -> pd.DataFrame:
+        # 'temp_mean_past1h', 'temp_dry'-> every 10 min
+
+        # clean temperature data frame
+        dfTemp = self.dmiRetriever.getWeatherData(
+            startDate=startDate, endDate=endDate, stationId="06123", field='temp_mean_past1h', limit='100000')
+
+        # clean consumptiond dataframe
+        dfConsumption = self.sqlRetriever.getConsumption(columns=['datetime', 'sum'], table='consumptionAggregated',
+                                                         startDate=startDate, endDate=endDate)
+
+        dfConsumption = dfConsumption.resample('1H').sum()
+
+        # merge temp and consumption data
+        df = dfConsumption.join(dfTemp)
+
+        return df

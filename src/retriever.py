@@ -19,6 +19,7 @@ class DMIRetriever:
             key = f.read()
         return key
 
+    # TODO: one function should only do one thing, consider split the function below (one for web request, one for parse the web response result)
     def getWeatherData(self, startDate, endDate, stationId="06123", field=None, limit='100000000') -> pd.DataFrame:
         """
         get weather data from DMI
@@ -49,12 +50,14 @@ class DMIRetriever:
         df.sort_index(ascending=True)
         return df
 
+    # TODO: one underscore should be enough _generateDMIQuery
     def __generateDMIQuery(self, startDate, endDate, stationId, field, limit) -> dict:
         """
         Generate a dmi query
         """
         # reformat datetime
         # startDate = datetime.strptime(startDate+' +0100', '%Y-%m-%d %z')
+        # TODO: increase readability, format the code to remove unnecessary empty line
         startDate = datetime.strptime(startDate, '%Y-%m-%d')
 
         endDate = datetime.strptime(endDate, '%Y-%m-%d')
@@ -78,7 +81,9 @@ class DMIRetriever:
 
 class SQLRetriever:
 
+    # TODO: ONE function ONLY doing ONE thing
     def getConsumption(self, table, startDate, endDate, columns):
+        # TODO: try, catch should ONLY contain code that may raise exception
         try:
             connection = psycopg2.connect(user="postgres",
                                           password="read",
@@ -108,19 +113,23 @@ class SQLRetriever:
             df['datetime'] = df['datetime'].apply(
                 lambda x: datetime.strptime(x.strftime("%Y-%m-%d %H:%M:%S"), "%Y-%m-%d %H:%M:%S"))
             df = df.set_index('datetime')
+            # TODO: you might want to return a copy
             return df
 
         except (Exception, psycopg2.Error) as error:
+            # TODO: use logging
             print("Error while fetching data from PostgreSQL", error)
 
         finally:
             # closing database connection.
+            # TODO: create a context class to handle the close operation, this may a bit of advance
             if connection:
                 cursor.close()
                 connection.close()
                 print("PostgreSQL connection is closed")
 
 
+# TODO: no need to create a class, a function is enough
 class DataRetriever:
     def __init__(self, path, url):
         self.dmiRetriever = DMIRetriever(path=path, url=url)
@@ -130,6 +139,7 @@ class DataRetriever:
         # 'temp_mean_past1h', 'temp_dry'-> every 10 min
 
         # clean temperature data frame
+        # TODO: too much hard coded variables
         dfTemp = self.dmiRetriever.getWeatherData(
             startDate=startDate, endDate=endDate, stationId="06123", field='temp_mean_past1h', limit='100000')
 

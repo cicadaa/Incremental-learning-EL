@@ -2,8 +2,10 @@ from sklearn.svm import SVR
 from sklearn.metrics import r2_score
 from sklearn.model_selection import train_test_split
 import pandas as pd
-
+# TODO: format import, short import goes first
 import numpy as np
+
+# TODO: Convert below class to a function and create a Utils file and put it there
 
 
 class Evaluator:
@@ -23,6 +25,7 @@ class Evaluator:
 
 class Dataset:
     def __init__(self, path):
+        # TODO: check if the path is valid
         self.data = pd.read_csv(path)
 
     def getTrainData(self, XSource, ySource, timeIdx, window, scaler):
@@ -46,6 +49,7 @@ class Dataset:
                 df['prev_' + c + str(i)] = df[c].shift(periods=i)
                 df['pre_' + c + str(i)] = df[c].shift(periods=i)
         df = df.dropna()
+        # TODO: Below code looks confusing
         y = df['meter']
         times = df['datetime']
 
@@ -53,5 +57,5 @@ class Dataset:
         del df['meter']
         del df['temp']
 
-        X = df
+        X = df  # TODO: this will create a reference not a copy
         return X, y, times

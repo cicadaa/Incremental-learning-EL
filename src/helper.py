@@ -17,6 +17,7 @@ def saveModel(model, path):
 
 
 def trainModel(model, XTrain, yTrain):
+    # TODO: use logging instead of print
     print('start training')
     model.fit(XTrain, yTrain)
     print('finished training')
@@ -38,6 +39,7 @@ def trainAndUpdateModel(model, XTrain, yTrain):
 # visualization
 
 def plotResult(actual, prediction):
+    # TODO: figsize should also be a parameter with default value (26, 10)
     fig, ax = plt.subplots(figsize=(26, 10))  # Create a figure and an axes.
     ax.plot(actual, label='Actual', color='blue')
     ax.plot(prediction, label='Prediction', color='red')

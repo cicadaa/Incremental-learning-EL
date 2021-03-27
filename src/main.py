@@ -13,6 +13,8 @@ from .helper import *
 import os
 import os.path
 
+# TODO: blow function need to be moved to a proper place
+
 
 def getNextTime(start, interval):
     end = datetime.strptime(
@@ -20,6 +22,7 @@ def getNextTime(start, interval):
     return end.strftime("%Y-%m-%d %H:%M:%S")
 
 
+# TODO: create a Runner class to handle the logic below
 if __name__ == "__main__":
 
     begin = time.time()
@@ -60,6 +63,7 @@ if __name__ == "__main__":
             updateModel = False
 
         # predict
+        # TODO: rename the variable, input is a keyword
         input = np.array(X[cur: nxt])
         input = scaler.transform(input)  # normalize input
         prediction = onlineModel.predict(input)

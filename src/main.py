@@ -1,23 +1,17 @@
 # from .. import DMI
+# from .retriever import DataRetriever
+
 import time
 from .config import LocalConfig
-# from .retriever import DataRetriever
+import threading
 from sklearn.svm import SVR
 from sklearn import preprocessing as pre
 import numpy as np
 from datetime import datetime, timedelta
-import pickle
-from matplotlib import pyplot as plt
-import pandas as pd
-from .simulator import Simulator
-
-
-def plotResult(actual, prediction):
-    fig, ax = plt.subplots(figsize=(26, 10))  # Create a figure and an axes.
-    ax.plot(actual, label='Actual', color='blue')
-    ax.plot(prediction, label='Prediction', color='red')
-    ax.legend()
-    plt.show()
+from .agents import Evaluator, Dataset
+from .helper import *
+import os
+import os.path
 
 
 def getNextTime(start, interval):
@@ -26,54 +20,74 @@ def getNextTime(start, interval):
     return end.strftime("%Y-%m-%d %H:%M:%S")
 
 
-def getSourceData(path, columns, prevFrom, prevTo):
-    df = pd.read_csv(path)
-    for i in range(prevFrom, prevTo+1):
-        for c in columns:
-            df['prev_' + c + str(i)] = df[c].shift(periods=i)
-            df['pre_' + c + str(i)] = df[c].shift(periods=i)
-    df = df.dropna()
-    y = df['meter']
-    times = df['datetime']
-
-    del df['datetime']
-    del df['meter']
-    del df['temp']
-
-    X = df
-    return X, y, times
-
-
 if __name__ == "__main__":
 
     begin = time.time()
-    X, y, times = getSourceData('data.csv', ['meter'], 12, 24)
-    cur = 12
-    nxt = 36
+    dataset = Dataset('data.csv')
+    X, y, times = dataset.getSourceData(['meter'], 12, 24)
 
-    simulator = Simulator()
-    model = simulator.model
+    # init online model
+    onlineModel = SVR(kernel='rbf', C=10, gamma=0.04, epsilon=.01)
 
-    scaler = pre.StandardScaler().fit(np.array(X[cur: nxt]))
-    XTrain = scaler.transform(np.array(X[cur: nxt]))
+    # warm start
+    XTrain, yTrain = np.array(X[: 24]), np.array(y[: 24])
+    scaler = pre.StandardScaler().fit(XTrain)
+    XTrain = scaler.transform(XTrain)
+    onlineModel.fit(XTrain, yTrain)
+    saveModel(onlineModel, 'src/models/svr_base.pkl')
 
-    model.fit(XTrain, np.array(y[cur: nxt]))
+    # init evaluator and offline training
+    X, y, times = X[24:], y[24:], times[24:],
+    cur = 0
 
-    simulator.saveModel(model, 'src/models/svr_base.pkl')
+    evaluator = Evaluator('r2', 0.8)
 
     predList = []
     actualList = []
-    while time.time() - begin < 0.1:
+    scoreList = []
+    updateModel = False
 
-        cur = nxt
+    # streaming loop
+    while time.time() - begin < 20:
+        # print(cur)
+        time.sleep(0.5)
         nxt = cur + 1
 
-        input = np.array(X[cur: nxt])
-        input = scaler.transform(input)
+        # update model
+        if updateModel and os.path.isfile('src/models/latestModel.pkl'):
+            onlineModel = loadModel('src/models/latestModel.pkl')
+            os.remove("src/models/latestModel.pkl")
+            updateModel = False
 
-        prediction = model.predict(input)
+        # predict
+        input = np.array(X[cur: nxt])
+        input = scaler.transform(input)  # normalize input
+        prediction = onlineModel.predict(input)
 
         predList.append(prediction[0])
         actualList.append(y[cur:nxt].values[0])
+        # scoreList.append(onlineModel.score(input, np.array(y[cur:nxt])))
 
+        # print('pred: ', predList)
+        # evaluate
+        isAcceptable = True
+
+        if cur >= 12 and not updateModel:
+            isAcceptable, eScore = evaluator.evaluate(
+                predList[cur-12: cur], actualList[cur-12: cur])
+            scoreList.append(eScore)
+
+        # retrain model
+        if not isAcceptable and not updateModel and cur > 24:
+            print('retrain')
+            XTrain, yTrain = dataset.getTrainData(
+                XSource=X, ySource=y, timeIdx=cur, window=24, scaler=scaler)
+            train = threading.Thread(
+                target=trainAndUpdateModel(model=onlineModel, XTrain=XTrain, yTrain=yTrain), args=(1,))
+            train.start()
+            updateModel = True
+
+        cur = nxt
+
+    print(scoreList)
     plotResult(actualList, predList)

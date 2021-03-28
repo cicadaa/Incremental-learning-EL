@@ -1,6 +1,6 @@
+import time
 import logging
 import threading
-import time
 
 
 def thread_function(name):

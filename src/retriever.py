@@ -6,7 +6,7 @@ from datetime import datetime
 from dateutil import tz
 
 
-__all__ = ['DMIRetriever', 'SQLRetriever', 'DataRetriever']
+__all__ = ['DMIRetriever', 'SQLRetriever']
 
 
 class DMIRetriever:
@@ -24,7 +24,7 @@ class DMIRetriever:
         """
         get weather data from DMI
         """
-        query = self.__generateDMIQuery(
+        query = self._generateDMIQuery(
             field=field, startDate=startDate, endDate=endDate, stationId=stationId, limit=limit)
         try:
             r = requests.get(self.urlDMI, params=query)
@@ -40,7 +40,11 @@ class DMIRetriever:
 
         # json to dataframe
         df = pd.DataFrame(json)
+        df = self._cleanDMIData(df)
 
+        return df
+
+    def _cleanDMIData(self, df):
         # clean data
         df['time'] = pd.to_datetime(df['timeObserved'], unit='us', utc=False)
         df = df.drop(['_id', 'timeCreated', 'timeObserved',
@@ -50,16 +54,12 @@ class DMIRetriever:
         df.sort_index(ascending=True)
         return df
 
-    # TODO: one underscore should be enough _generateDMIQuery
-    def __generateDMIQuery(self, startDate, endDate, stationId, field, limit) -> dict:
+    def _generateDMIQuery(self, startDate, endDate, stationId, field, limit) -> dict:
         """
         Generate a dmi query
         """
         # reformat datetime
-        # startDate = datetime.strptime(startDate+' +0100', '%Y-%m-%d %z')
-        # TODO: increase readability, format the code to remove unnecessary empty line
         startDate = datetime.strptime(startDate, '%Y-%m-%d')
-
         endDate = datetime.strptime(endDate, '%Y-%m-%d')
 
         startDate = str(int(pd.to_datetime(startDate).value * 10**-3))
@@ -112,13 +112,12 @@ class SQLRetriever:
             df.columns = ['datetime', 'meter']
             df['datetime'] = df['datetime'].apply(
                 lambda x: datetime.strptime(x.strftime("%Y-%m-%d %H:%M:%S"), "%Y-%m-%d %H:%M:%S"))
-            df = df.set_index('datetime')
-            # TODO: you might want to return a copy
+            df = df.set_index('datetime').copy()
+
             return df
 
         except (Exception, psycopg2.Error) as error:
-            # TODO: use logging
-            print("Error while fetching data from PostgreSQL", error)
+            logging.info("Error while fetching data from PostgreSQL", error)
 
         finally:
             # closing database connection.
@@ -129,27 +128,22 @@ class SQLRetriever:
                 print("PostgreSQL connection is closed")
 
 
-# TODO: no need to create a class, a function is enough
-class DataRetriever:
-    def __init__(self, path, url):
-        self.dmiRetriever = DMIRetriever(path=path, url=url)
-        self.sqlRetriever = SQLRetriever()
+def getChunckData(self, startDate, endDate, path, url) -> pd.DataFrame:
+    # 'temp_mean_past1h', 'temp_dry'-> every 10 min
+    dmiRetriever = DMIRetriever(path=path, url=url)
+    sqlRetriever = SQLRetriever()
 
-    def getChunckData(self, startDate, endDate) -> pd.DataFrame:
-        # 'temp_mean_past1h', 'temp_dry'-> every 10 min
+    # clean temperature data frame
+    dfTemp = dmiRetriever.getWeatherData(
+        startDate=startDate, endDate=endDate, stationId="06123", field='temp_mean_past1h', limit='100000')
 
-        # clean temperature data frame
-        # TODO: too much hard coded variables
-        dfTemp = self.dmiRetriever.getWeatherData(
-            startDate=startDate, endDate=endDate, stationId="06123", field='temp_mean_past1h', limit='100000')
+    # clean consumptiond dataframe
+    dfConsumption = sqlRetriever.getConsumption(columns=['datetime', 'sum'], table='consumptionAggregated',
+                                                startDate=startDate, endDate=endDate)
 
-        # clean consumptiond dataframe
-        dfConsumption = self.sqlRetriever.getConsumption(columns=['datetime', 'sum'], table='consumptionAggregated',
-                                                         startDate=startDate, endDate=endDate)
+    dfConsumption = dfConsumption.resample('1H').sum()
 
-        dfConsumption = dfConsumption.resample('1H').sum()
+    # merge temp and consumption data
+    df = dfConsumption.join(dfTemp)
 
-        # merge temp and consumption data
-        df = dfConsumption.join(dfTemp)
-
-        return df
+    return df

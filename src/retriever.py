@@ -1,4 +1,5 @@
 import pandas as pd
+import logging
 import requests
 import json
 import psycopg2
@@ -28,21 +29,19 @@ class DMIRetriever:
             field=field, startDate=startDate, endDate=endDate, stationId=stationId, limit=limit)
         try:
             r = requests.get(self.urlDMI, params=query)
-            print(r)
+            logging.debug(r)
 
         except requests.exceptions.RequestException as e:
             raise SystemExit(e)
 
         if r.status_code != 200:
-            print(r.status_code)
+            logging.debug(r.status_code)
             raise ValueError(str(r))
         json = r.json()
 
         # json to dataframe
         df = pd.DataFrame(json)
-        df = self._cleanDMIData(df)
-
-        return df
+        return self._cleanDMIData(df)
 
     def _cleanDMIData(self, df):
         # clean data
@@ -50,9 +49,8 @@ class DMIRetriever:
         df = df.drop(['_id', 'timeCreated', 'timeObserved',
                       'stationId', 'parameterId'], axis=1)
         df.columns = ['temp', 'datetime']
-        df = df.set_index('datetime')
-        df.sort_index(ascending=True)
-        return df
+
+        return df.set_index('datetime').sort_index(ascending=True)
 
     def _generateDMIQuery(self, startDate, endDate, stationId, field, limit) -> dict:
         """
@@ -112,12 +110,12 @@ class SQLRetriever:
             df.columns = ['datetime', 'meter']
             df['datetime'] = df['datetime'].apply(
                 lambda x: datetime.strptime(x.strftime("%Y-%m-%d %H:%M:%S"), "%Y-%m-%d %H:%M:%S"))
-            df = df.set_index('datetime').copy()
 
-            return df
+            return df.set_index('datetime').copy()
 
         except (Exception, psycopg2.Error) as error:
-            logging.info("Error while fetching data from PostgreSQL", error)
+            logging.info(
+                "Error while fetching data from PostgreSQL" + str(error))
 
         finally:
             # closing database connection.
@@ -125,25 +123,4 @@ class SQLRetriever:
             if connection:
                 cursor.close()
                 connection.close()
-                print("PostgreSQL connection is closed")
-
-
-def getChunckData(self, startDate, endDate, path, url) -> pd.DataFrame:
-    # 'temp_mean_past1h', 'temp_dry'-> every 10 min
-    dmiRetriever = DMIRetriever(path=path, url=url)
-    sqlRetriever = SQLRetriever()
-
-    # clean temperature data frame
-    dfTemp = dmiRetriever.getWeatherData(
-        startDate=startDate, endDate=endDate, stationId="06123", field='temp_mean_past1h', limit='100000')
-
-    # clean consumptiond dataframe
-    dfConsumption = sqlRetriever.getConsumption(columns=['datetime', 'sum'], table='consumptionAggregated',
-                                                startDate=startDate, endDate=endDate)
-
-    dfConsumption = dfConsumption.resample('1H').sum()
-
-    # merge temp and consumption data
-    df = dfConsumption.join(dfTemp)
-
-    return df
+                logging.info("PostgreSQL connection is closed")

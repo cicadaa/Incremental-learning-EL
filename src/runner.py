@@ -1,19 +1,19 @@
 
 import os
 import os.path
-
 import time
 import threading
 import numpy as np
 from .utils import *
+from .agents import Dataset
 from sklearn.svm import SVR
 from .config import LocalConfig
 from sklearn import preprocessing as pre
-from datetime import datetime, timedelta
-from .agents import Dataset
 
 
-# TODO: create a Runner class to handle the logic below
+__all__ = ['Runner']
+
+
 class Runner:
     def __init__(self, config):
         self.datapath = config.datapath
@@ -26,13 +26,14 @@ class Runner:
         self.X, self.y, self.times = self.dataset.getSourceData(
             self.features, self.prevFrom, self.prevTo)
 
-        self.onlineModel = config.model
+        self.onlineModel = SVR(
+            kernel='rbf', C=10, gamma=0.04, epsilon=.01)
         self.scaler = pre.StandardScaler()
         self.predList, self.actualList, self.scoreList = [], [], []
         self.update = False
         self.acceptable = True
 
-    def warmStart(self, idxFrom, idxTo):
+    def _warmStart(self, idxFrom, idxTo):
         # pretrain model
         XTrain, yTrain = np.array(
             self.X[idxFrom: idxTo]), np.array(self.y[idxFrom: idxTo])
@@ -45,13 +46,13 @@ class Runner:
 
         saveModel(self.onlineModel, self.modelPath)
 
-    def updateModel(self, update=False):
+    def _updateModel(self, update=False):
         if update and os.path.isfile(self.modelPath):
             self.onlineModel = loadModel(self.modelPath)
             os.remove(self.modelPath)
             self.update = False
 
-    def evaluateResult(self, method, idxFrom, idxTo, update, basescore):
+    def _evaluateResult(self, method, idxFrom, idxTo, update, basescore):
         if idxFrom >= 12 and not update:
             if method == 'r2':
                 score = r2_score(
@@ -60,7 +61,7 @@ class Runner:
                 self.scoreList.append(score)
                 self.update = False if score > basescore*0.9 else True
 
-    def predictResult(self, idxFrom, idxTo):
+    def _predictResult(self, idxFrom, idxTo):
         XTrain = np.array(self.X[idxFrom: idxTo])
         XTrain = self.scaler.transform(XTrain)  # normalize input
         prediction = self.onlineModel.predict(XTrain)
@@ -70,7 +71,7 @@ class Runner:
 
     def run(self, duration, interval):
         begin = time.time()
-        self.warmStart(idxFrom=0, idxTo=12)
+        self._warmStart(idxFrom=0, idxTo=12)
         cur = 0
 
         # streaming loop
@@ -81,12 +82,12 @@ class Runner:
             update = False
 
             # update model
-            self.updateModel(update=update)
-            self.predictResult(cur, nxt)
+            self._updateModel(update=update)
+            self._predictResult(cur, nxt)
 
             # evaluate model
             if cur >= 12 and not update:
-                self.evaluateResult(
+                self._evaluateResult(
                     method='r2', idxFrom=cur-12, idxTo=cur, update=update, basescore=0.8)
 
             # retrain model

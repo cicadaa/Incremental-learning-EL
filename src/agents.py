@@ -11,8 +11,8 @@ class Dataset:
         self.data = pd.read_csv(path)
 
     def getTrainData(self, XSource, ySource, idxFrom, idxTo, scaler):
-        XTrain = XSource[idxFrom: idxTo]
-        yTrain = ySource[idxFrom: idxTo]
+        XTrain = XSource[idxFrom: idxTo].copy()
+        yTrain = ySource[idxFrom: idxTo].copy()
         XTrain = scaler.transform(XTrain)
         return XTrain, yTrain
 
@@ -24,13 +24,12 @@ class Dataset:
                 df['pre_' + c + str(i)] = df[c].shift(periods=i)
         df = df.dropna()
 
-        # TODO: Below code looks confusing
-        y = df['meter']
-        times = df['datetime']
+        y = df['meter'].copy()
+        times = df['datetime'].copy()
 
         del df['datetime']
         del df['meter']
         del df['temp']
 
-        X = df  # TODO: this will create a reference not a copy
+        X = df.copy()
         return X, y, times

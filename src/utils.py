@@ -4,6 +4,7 @@ import logging
 from datetime import datetime, timedelta
 from matplotlib import pyplot as plt
 from sklearn.metrics import r2_score
+from .retriever import *
 
 
 # Model Management=============================================================
@@ -35,15 +36,26 @@ def trainAndUpdateModel(model, XTrain, yTrain):
     logging.info('dutation'+str(time.time()-begin))
 
 
-# Evaluate Model ===============================================================
+# Fetch Data ===============================================================
 
-# def evaluate(method, prediction, actual, basescore=0.8):
-#     if method == 'r2':
-#         score = r2_score(actual, prediction)
-#         if score > basescore*0.9:
-#             return True, score
-#         else:
-#             return False, score
+
+def getChunckData(self, startDate, endDate, path, url) -> pd.DataFrame:
+    # 'temp_mean_past1h', 'temp_dry'-> every 10 min
+    dmiRetriever = DMIRetriever(path=path, url=url)
+    sqlRetriever = SQLRetriever()
+
+    # clean temperature data frame
+    dfTemp = dmiRetriever.getWeatherData(
+        startDate=startDate, endDate=endDate, stationId="06123", field='temp_mean_past1h', limit='100000')
+
+    # clean consumptiond dataframe
+    dfConsumption = sqlRetriever.getConsumption(columns=['datetime', 'sum'], table='consumptionAggregated',
+                                                startDate=startDate, endDate=endDate)
+
+    dfConsumption = dfConsumption.resample('1H').sum()
+
+    # merge temp and consumption data
+    return dfConsumption.join(dfTemp)
 
 
 # Visualization ===============================================================

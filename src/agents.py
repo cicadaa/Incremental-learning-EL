@@ -10,18 +10,17 @@ class Dataset:
         # TODO: check if the path is valid
         self.data = pd.read_csv(path)
 
-    def getTrainData(self, XSource, ySource, idxFrom, idxTo, scaler):
+    def getTrainData(self, XSource, ySource, idxFrom, idxTo):
         XTrain = XSource[idxFrom: idxTo].copy()
         yTrain = ySource[idxFrom: idxTo].copy()
-        XTrain = scaler.transform(XTrain)
         return XTrain, yTrain
 
     def getSourceData(self, columns, prevFrom, prevTo):
         df = self.data
+        columns = ['meter']
         for i in range(prevFrom, prevTo+1):
             for c in columns:
                 df['prev_' + c + str(i)] = df[c].shift(periods=i)
-                df['pre_' + c + str(i)] = df[c].shift(periods=i)
         df = df.dropna()
 
         y = df['meter'].copy()
@@ -31,5 +30,4 @@ class Dataset:
         del df['meter']
         del df['temp']
 
-        X = df.copy()
-        return X, y, times
+        return df.copy(), y, times

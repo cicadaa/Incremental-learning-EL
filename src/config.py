@@ -4,7 +4,7 @@ class LocalConfig:
     apiKeyPathDMI = 'src/files/apikey.txt'
 
     datapath = 'data.csv'
-    features = ['meter']
+    features = ['meter', 'temp']
 
     prevFrom = 12
     prevTo = 24

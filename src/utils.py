@@ -1,9 +1,9 @@
 import time
 import pickle
 import logging
+import pandas as pd
 from datetime import datetime, timedelta
 from matplotlib import pyplot as plt
-from sklearn.metrics import r2_score
 from .retriever import *
 
 
@@ -26,14 +26,9 @@ def trainModel(model, XTrain, yTrain):
     logging.info('finished training')
 
 
-def trainAndUpdateModel(model, XTrain, yTrain):
-    begin = time.time()
-    logging.info('start training')
+def trainAndUpdateModel(model, XTrain, yTrain, id):
     model.fit(XTrain, yTrain)
-    logging.info('finished training')
-    saveModel(model, 'src/models/latestModel.pkl')
-    logging.info('updates model')
-    logging.info('dutation'+str(time.time()-begin))
+    saveModel(model, 'src/models/latestModel{0}.pkl'.format(id))
 
 
 # Fetch Data ===============================================================

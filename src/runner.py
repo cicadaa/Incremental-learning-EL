@@ -1,11 +1,10 @@
-
 import os
 import os.path
 import time
 import threading
 import numpy as np
 from .utils import *
-from .agents import Dataset
+import logging
 from sklearn.svm import SVR
 from .config import LocalConfig
 from sklearn import preprocessing as pre
@@ -16,108 +15,126 @@ __all__ = ['Runner']
 
 
 class Runner:
-    def __init__(self, dataPath, modelPath, features, shiftRange=[12, 36], model='SVR'):
+    def __init__(self, dataPath, modelPath, features, shiftRange=[8, 24], modelName='svr'):
         self.dataPath = dataPath
         self.modelPath = modelPath
+        self.modelName = modelName
+        self.modelFilePath = None
         self.features = features
-
         self.shiftRange = shiftRange
-        self.dataset = Dataset(self.dataPath)
-        self.X, self.y, self.times = self.dataset.getSourceData(
-            self.features, self.shiftRange[0], self.shiftRange[1])
 
-        self.model = self._getModel(model)
+        self.X, self.y, self.times = self._prepareData()
+
+        self.model = self._getModel(modelName)
         self.scaler = pre.StandardScaler()
 
         self.predList, self.actualList, self.scoreList = [], [], []
         self.update = False
         self.acceptable = True
+        self.idx = 0
 
-    def _getModel(self, model):
+    def _prepareData(self):
+        df = getSourceData(self.dataPath)
+        df = shiftData(df=df, features=self.features,
+                       shiftFrom=self.shiftRange[0], shiftTo=self.shiftRange[1])
+        df = df[self.shiftRange[0]:].reset_index().copy()
+        return splitData(df)
+
+    def _getModel(self, modelName):
         return {
-            'svr': SVR(kernel='rbf', C=10, gamma=0.04, epsilon=.01),
-        }[model]
+            'svr': SVR(kernel='rbf', C=100, gamma=0.04, epsilon=.01),
+        }[modelName]
 
     def _warmStart(self, idxFrom, idxTo):
         # pretrain model
-        XTrain, yTrain = np.array(
-            self.X[idxFrom: idxTo]), np.array(self.y[idxFrom: idxTo])
-        XTrain = self.scaler.fit_transform(XTrain)
+        XTrain, yTrain = getTrainData(
+            X=self.X, y=self.y, idxFrom=idxFrom, idxTo=idxTo)
 
-        self.onlineModel.fit(XTrain, yTrain)
+        XTrain = self.scaler.fit_transform(XTrain)
+        self.model.fit(XTrain, yTrain)
 
         # get new data pool
         self.X, self.y, self.times = self.X[idxTo:
                                             ], self.y[idxTo:], self.times[idxTo:]
+        self.modelFilePath = self.modelPath+self.modelName+'.pkl'
+        saveModel(self.model, self.modelFilePath)
 
-        saveModel(self.onlineModel, self.modelPath)
-
-    def _updateModel(self, update=False):
-        if update and os.path.isfile(self.modelPath):
-            self.onlineModel = loadModel(self.modelPath)
-            # os.remove(self.modelPath)
+    def _updateModel(self):
+        if self.update and os.path.isfile(self.modelFilePath):
+            self.model = loadModel(self.modelFilePath)
+            os.remove(self.modelFilePath)
             self.update = False
+            self.idx += 1
 
-    def _evaluateResult(self, method, idxFrom, idxTo, update, basescore):
+    def _evaluateResult(self, method, idxFrom, idxTo, baseScore):
         yPred, yActual = self.predList[idxFrom:
                                        idxTo], self.actualList[idxFrom: idxTo]
-        if idxFrom >= 12 and not update:
+        if not self.update:
 
             if method == 'r2':
                 score = r2_score(y_pred=yPred, y_true=yActual)
-                self.update = False if score > basescore else True
+                self.update = False if score > baseScore else True
 
             elif method == 'mape':
                 score = mean_absolute_percentage_error(
                     y_pred=yPred, y_true=yActual)
-                self.update = False if score < basescore else True
-                self.scoreList.append(score)
+                self.update = False if score < baseScore else True
+
+            self.scoreList.append(score)
 
     def _predictResult(self, idxFrom, idxTo):
         X = np.array(self.X[idxFrom: idxTo])
-        X = self.scaler.transform(X)  # normalize input
+        XTrans = self.scaler.transform(X)  # normalize input
 
-        prediction = self.onlineModel.predict(X)
-        self.predList.append(prediction[0])
+        predVal = self.model.predict(XTrans)
+        print('pred', predVal[0])
+        self.predList.append(predVal[0])
         self.actualList.append(self.y[idxFrom:idxTo].values[0])
+
+    def _retrainModel(self, idxFrom, idxTo):
+        XTrain, yTrain = getTrainData(
+            X=self.X, y=self.y, idxFrom=idxFrom, idxTo=idxTo)
+        self.scaler = pre.StandardScaler()
+        XTrans = self.scaler.fit_transform(XTrain)
+
+        self.model.fit(XTrans, yTrain)
+
+        self.modelFilePath = self.modelPath + self.modelName + self.idx + '.pkl'
+        # print(self.modelFilePath)
+        saveModel(self.model, self.modelFilePath)
+        self.update = True
 
     def run(self, duration, interval):
         begin = time.time()
-        self._warmStart(idxFrom=0, idxTo=48)
         cur = 0
-        i = 0
+        nxt = 48
+        self._warmStart(idxFrom=cur, idxTo=nxt)
 
         # streaming loop
         while time.time() - begin < duration:
+            cur = nxt
+            nxt = cur + 1
 
             time.sleep(interval)
-            nxt = cur + 1
             self.update = False
 
             # update model
-            self._updateModel(update=self.update)
-            self._predictResult(cur, nxt)
+            self._updateModel()
+            self._predictResult(idxFrom=cur, idxTo=nxt)
 
             # evaluate model
-            evaluateThld = 48
+            evaluateThld = self.shiftRange[0]+48
             if cur >= evaluateThld and not self.update:
+                print('evaluate')
                 self._evaluateResult(
-                    method='mape', idxFrom=cur-evaluateThld, idxTo=cur, update=self.update, basescore=0.3)
+                    method='mape', idxFrom=cur-evaluateThld, idxTo=cur, baseScore=0.3)
 
             # retrain model
-            trainThld = 48
+            trainThld = self.shiftRange[0] + 48
             if not self.acceptable and not self.update and cur > trainThld:
-                XTrain, yTrain = self.dataset.getTrainData(
-                    XSource=self.X, ySource=self.y, idxFrom=0, idxTo=cur)
-                self.scaler = pre.StandardScaler()
-                XTrain = self.scaler.fit_transform(XTrain)
                 train = threading.Thread(
-                    target=trainAndUpdateModel(model=self.onlineModel, XTrain=XTrain, yTrain=yTrain, id=i), args=(1,))
+                    target=self._retrainModel(idxFrom=cur-48, idxTo=cur), args=(1,))
                 train.start()
-                self.modelPath = 'src/models/svrLatest{0}.pkl'.format(i)
-                self.update = True
 
-            cur = nxt
-
-        logging.info(self.scoreList)
+        # logging.info(self.scoreList)
         plotResult(self.actualList, self.predList)

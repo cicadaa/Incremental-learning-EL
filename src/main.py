@@ -3,5 +3,12 @@ from .runner import *
 
 
 if __name__ == "__main__":
-    runner = Runner(LocalConfig)
-    runner.run(duration=10, interval=0.05)
+    dataPath = LocalConfig.dataPath
+    modelPath = LocalConfig.modelPath
+    features = LocalConfig.features
+    shiftRange = LocalConfig.shiftRange
+    model = LocalConfig.model
+
+    runner = Runner(dataPath=dataPath, modelPath=modelPath, features=features,
+                    shiftRange=shiftRange, modelName=model, )
+    runner.run(duration=1, interval=0.01)

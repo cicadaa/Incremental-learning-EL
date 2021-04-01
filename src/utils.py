@@ -2,12 +2,15 @@ import time
 import pickle
 import logging
 import pandas as pd
+import numpy as np
 from datetime import datetime, timedelta
 from matplotlib import pyplot as plt
-from .retriever import *
 
 
+__all__ = ['loadModel', 'saveModel', 'trainModel',
+           'trainAndUpdateModel', 'plotResult', 'getSourceData', 'getTrainData', 'shiftData', 'splitData']
 # Model Management=============================================================
+
 
 def loadModel(path):
     with open(path, 'rb') as f:
@@ -31,28 +34,6 @@ def trainAndUpdateModel(model, XTrain, yTrain, id):
     saveModel(model, 'src/models/latestModel{0}.pkl'.format(id))
 
 
-# Fetch Data ===============================================================
-
-
-def getChunckData(self, startDate, endDate, path, url) -> pd.DataFrame:
-    # 'temp_mean_past1h', 'temp_dry'-> every 10 min
-    dmiRetriever = DMIRetriever(path=path, url=url)
-    sqlRetriever = SQLRetriever()
-
-    # clean temperature data frame
-    dfTemp = dmiRetriever.getWeatherData(
-        startDate=startDate, endDate=endDate, stationId="06123", field='temp_mean_past1h', limit='100000')
-
-    # clean consumptiond dataframe
-    dfConsumption = sqlRetriever.getConsumption(columns=['datetime', 'sum'], table='consumptionAggregated',
-                                                startDate=startDate, endDate=endDate)
-
-    dfConsumption = dfConsumption.resample('1H').sum()
-
-    # merge temp and consumption data
-    return dfConsumption.join(dfTemp)
-
-
 # Visualization ===============================================================
 
 def plotResult(actual, prediction, figsize=(26, 10)):
@@ -69,3 +50,32 @@ def getNextTime(start, interval):
     end = datetime.strptime(
         start, "%Y-%m-%d %H:%M:%S") + timedelta(hours=interval)
     return end.strftime("%Y-%m-%d %H:%M:%S")
+
+
+# Prepare Data ===============================================================
+
+def getTrainData(X, y, idxFrom, idxTo):
+    XTrain = np.array(X[idxFrom: idxTo].copy())
+    yTrain = np.array(y[idxFrom: idxTo].copy())
+    return XTrain, yTrain
+
+
+def shiftData(df, features, shiftFrom, shiftTo):
+    for i in range(shiftFrom, shiftTo+1):
+        for f in features:
+            df['prev_' + f + str(i)] = df[f].shift(periods=i)
+    return df.dropna().copy()
+
+
+def splitData(df):
+    removeLst = ['datetime', 'meter', 'temp']
+    features = [e for e in list(df.columns) if e not in removeLst]
+    return df[features].copy(), df['meter'].copy(), df['datetime'].copy()
+
+
+def getSourceData(dataPath):
+    try:
+        df = pd.read_csv(dataPath)
+    except Exception as e:
+        logging.error(e)
+    return df.dropna()

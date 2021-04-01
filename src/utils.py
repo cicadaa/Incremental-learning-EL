@@ -29,9 +29,9 @@ def trainModel(model, XTrain, yTrain):
     logging.info('finished training')
 
 
-def trainAndUpdateModel(model, XTrain, yTrain, id):
+def trainAndUpdateModel(model, XTrain, yTrain, modelId):
     model.fit(XTrain, yTrain)
-    saveModel(model, 'src/models/latestModel{0}.pkl'.format(id))
+    saveModel(model, 'src/models/latestModel{0}.pkl'.format(modelId))
 
 
 # Visualization ===============================================================

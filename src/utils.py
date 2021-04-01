@@ -47,8 +47,8 @@ def plotResult(actual, prediction, figsize=(26, 10)):
 # Time Formater ===============================================================
 
 def getNextTime(start, interval):
-    end = datetime.strptime(
-        start, "%Y-%m-%d %H:%M:%S") + timedelta(hours=interval)
+    end = datetime.strptime(start, "%Y-%m-%d %H:%M:%S")
+    end = end + timedelta(hours=interval)
     return end.strftime("%Y-%m-%d %H:%M:%S")
 
 
@@ -61,21 +61,22 @@ def getTrainData(X, y, idxFrom, idxTo):
 
 
 def shiftData(df, features, shiftFrom, shiftTo):
-    for i in range(shiftFrom, shiftTo+1):
+    for i in range(shiftFrom, shiftTo + 1):
         for f in features:
             df['prev_' + f + str(i)] = df[f].shift(periods=i)
     return df.dropna().copy()
 
 
 def splitData(df):
-    removeLst = set(['datetime', 'meter', 'temp'])
-    features = [e for e in list(df.columns) if e not in removeLst]
+    removeSet = set(['datetime', 'meter', 'temp'])
+    features = [e for e in list(df.columns) if e not in removeSet]
     return df[features].copy(), df['meter'].copy(), df['datetime'].copy()
 
 
 def getSourceData(dataPath):
     try:
         df = pd.read_csv(dataPath)
-    except:
-        raise Exception
+    except Exception as e:
+        logging.error(e)
+        raise e
     return df.dropna()

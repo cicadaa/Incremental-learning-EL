@@ -56,7 +56,8 @@ class Runner:
         # get new data pool
         self.X, self.y, self.times = self.X[idxTo:
                                             ], self.y[idxTo:], self.times[idxTo:]
-        self.modelFilePath = self.modelPath+self.modelName+'.pkl'
+        self.modelFilePath = self.modelPath + self.modelName + '.pkl'
+
         saveModel(self.model, self.modelFilePath)
 
     def _updateModel(self):
@@ -85,9 +86,7 @@ class Runner:
     def _predictResult(self, idxFrom, idxTo):
         X = np.array(self.X[idxFrom: idxTo])
         XTrans = self.scaler.transform(X)  # normalize input
-
         predVal = self.model.predict(XTrans)
-        print('pred', predVal[0])
         self.predList.append(predVal[0])
         self.actualList.append(self.y[idxFrom:idxTo].values[0])
 
@@ -100,7 +99,7 @@ class Runner:
         self.model.fit(XTrans, yTrain)
 
         self.modelFilePath = self.modelPath + self.modelName + self.idx + '.pkl'
-        # print(self.modelFilePath)
+        print(self.modelFilePath)
         saveModel(self.model, self.modelFilePath)
         self.update = True
 
@@ -123,15 +122,15 @@ class Runner:
             self._predictResult(idxFrom=cur, idxTo=nxt)
 
             # evaluate model
-            evaluateThld = self.shiftRange[0]+48
+            evaluateThld = 48 * 2
             if cur >= evaluateThld and not self.update:
-                print('evaluate')
                 self._evaluateResult(
                     method='mape', idxFrom=cur-evaluateThld, idxTo=cur, baseScore=0.3)
 
             # retrain model
-            trainThld = self.shiftRange[0] + 48
-            if not self.acceptable and not self.update and cur > trainThld:
+            trainThld = 48 * 2
+            if self.update and cur > trainThld:
+                print('retrain')
                 train = threading.Thread(
                     target=self._retrainModel(idxFrom=cur-48, idxTo=cur), args=(1,))
                 train.start()

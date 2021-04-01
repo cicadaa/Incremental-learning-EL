@@ -7,7 +7,7 @@ from datetime import datetime, timedelta
 from matplotlib import pyplot as plt
 
 
-__all__ = ['loadModel', 'saveModel', 'trainModel',
+__all__ = ['loadModel', 'saveModel',
            'trainAndUpdateModel', 'plotResult', 'getSourceData', 'getTrainData', 'shiftData', 'splitData']
 # Model Management=============================================================
 
@@ -68,7 +68,7 @@ def shiftData(df, features, shiftFrom, shiftTo):
 
 
 def splitData(df):
-    removeLst = ['datetime', 'meter', 'temp']
+    removeLst = set(['datetime', 'meter', 'temp'])
     features = [e for e in list(df.columns) if e not in removeLst]
     return df[features].copy(), df['meter'].copy(), df['datetime'].copy()
 
@@ -76,6 +76,6 @@ def splitData(df):
 def getSourceData(dataPath):
     try:
         df = pd.read_csv(dataPath)
-    except Exception as e:
-        logging.error(e)
+    except:
+        raise Exception
     return df.dropna()

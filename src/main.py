@@ -9,7 +9,8 @@ if __name__ == "__main__":
     features = LocalConfig.features
     shiftRange = LocalConfig.shiftRange
 
-    model = SVRModel(modelPath=modelPath)
+    model = SVRModel(modelPath=modelPath, kernel='rbf',
+                     C=100, gamma=0.04, epsilon=.01)
 
     runner = Runner(dataPath=dataPath, features=features,
                     shiftRange=shiftRange, model=model)

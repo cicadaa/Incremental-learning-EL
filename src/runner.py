@@ -67,8 +67,8 @@ class Runner:
         self.actualList.append(yTrain[0])
 
     def run(self, duration, interval):
-        format = "%(asctime)s: %(message)s"
-        logging.basicConfig(format=format, level=logging.INFO,
+        logformat = "%(asctime)s: %(message)s"
+        logging.basicConfig(format=logformat, level=logging.INFO,
                             datefmt="%H:%M:%S")
         begin = time.time()
         cur = 0

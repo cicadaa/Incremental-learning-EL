@@ -1,6 +1,8 @@
 from .config import LocalConfig
 from .runner import *
 from .models import SVRModel
+from .dataset import Dataset
+import logging
 
 
 if __name__ == "__main__":
@@ -15,7 +17,8 @@ if __name__ == "__main__":
 
     model = SVRModel(modelPath=modelPath, kernel='rbf',
                      C=100, gamma=0.04, epsilon=.01)
+    dataset = Dataset(dataPath=dataPath, features=features, shiftRange=shiftRange,
+                      removeSet=set(['datetime', 'meter', 'temp']))
 
-    runner = Runner(dataPath=dataPath, features=features,
-                    shiftRange=shiftRange, model=model)
+    runner = Runner(dataset=dataset, model=model)
     runner.run(duration=1, interval=0.1)

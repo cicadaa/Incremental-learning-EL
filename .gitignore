@@ -130,5 +130,8 @@ dmypy.json
 
 # data
 *.csv
+*.pkl
 /data
+/.vscode
+/modelFiles
 *.parquet

@@ -1,5 +1,5 @@
 from .config import LocalConfig
-from .runner import *
+from .runner import Runner
 from .models import SVRModel
 from .dataset import Dataset
 import logging

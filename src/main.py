@@ -17,8 +17,8 @@ if __name__ == "__main__":
 
     model = SVRModel(modelPath=modelPath, kernel='rbf',
                      C=100, gamma=0.04, epsilon=.01)
-    dataset = Dataset(dataPath=dataPath, features=features, shiftRange=shiftRange,
-                      removeSet=set(['datetime', 'meter', 'temp']))
+    dataset = Dataset(dataPath=dataPath, features=features,
+                      shiftRange=shiftRange)
 
     runner = Runner(dataset=dataset, model=model)
     runner.run(duration=1, interval=0.1)

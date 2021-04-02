@@ -9,10 +9,40 @@ class Dataset:
         self.features = features
         self.shiftRange = shiftRange
         self.removeSet = removeSet
-        self.data = self._getData()
-        self.X, self.y, self.times = self._splitData(self.data)
+        self.data = self._initData()
+        self._X, self._y, self._times = self._splitData(self.data)
 
-    def _getData(self):
+    @property
+    def X(self):
+        return self._X
+
+    @X.setter
+    def X(self, value):
+        if type(value) is not pd.DataFrame:
+            raise ValueError('X should be dataframe')
+        self._X = value
+
+    @property
+    def y(self):
+        return self._y
+
+    @y.setter
+    def y(self, value):
+        if type(value) is not pd.DataFrame:
+            raise ValueError('y should be dataframe')
+        self._y = value
+
+    @property
+    def times(self):
+        return self._times
+
+    @times.setter
+    def times(self, value):
+        if type(value) is not pd.DataFrame:
+            raise ValueError('times should be dataframe')
+        self._times = value
+
+    def _initData(self):
         df = self._readData(self.dataPath)
         df = self._shiftData(df=df, features=self.features,
                              shiftFrom=self.shiftRange[0], shiftTo=self.shiftRange[1])
@@ -26,8 +56,7 @@ class Dataset:
         return df.dropna().copy()
 
     def _splitData(self, df):
-        removeSet = set(['datetime', 'meter', 'temp'])
-        features = [e for e in list(df.columns) if e not in removeSet]
+        features = [e for e in list(df.columns) if e not in self.removeSet]
         return df[features].copy(), df['meter'].copy(), df['datetime'].copy()
 
     def _readData(self, dataPath):

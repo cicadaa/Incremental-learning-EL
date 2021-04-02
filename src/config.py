@@ -4,8 +4,7 @@ class LocalConfig:
     apiKeyPathDMI = 'src/files/apikey.txt'
 
     dataPath = 'data.csv'
-    modelPath = 'src/models/'
-    model = 'svr'
+    modelPath = 'src/modelsFiles/'
 
     features = ['meter']
     shiftRange = [12, 36]

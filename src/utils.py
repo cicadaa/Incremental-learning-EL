@@ -37,7 +37,7 @@ def trainAndUpdateModel(model, XTrain, yTrain, modelId):
 # Visualization ===============================================================
 
 def plotResult(actual, prediction, figsize=(26, 10)):
-    fig, ax = plt.subplots(figsize=figsize)
+    _, ax = plt.subplots(figsize=figsize)
     ax.plot(actual, label='Actual', color='blue')
     ax.plot(prediction, label='Prediction', color='red')
     ax.legend()
@@ -47,9 +47,9 @@ def plotResult(actual, prediction, figsize=(26, 10)):
 # Time Formater ===============================================================
 
 def getNextTime(start, interval):
-    end = datetime.strptime(start, "%Y-%m-%d %H:%M:%S")
-    end = end + timedelta(hours=interval)
-    return end.strftime("%Y-%m-%d %H:%M:%S")
+    timeFormat = "%Y-%m-%d %H:%M:%S"
+    end = datetime.strptime(start, timeFormat) + timedelta(hours=interval)
+    return end.strftime(timeFormat)
 
 
 # Prepare Data ===============================================================

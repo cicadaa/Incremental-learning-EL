@@ -66,7 +66,7 @@ class Runner:
         self.predList.append(predVal[0])
         self.actualList.append(yTrain[0])
 
-    def run(self, duration, interval):
+    def run(self, duration, interval, evaluateThreshold=96, trainThreshold=96):
         logformat = "%(asctime)s: %(message)s"
         logging.basicConfig(format=logformat, level=logging.INFO,
                             datefmt="%H:%M:%S")
@@ -87,13 +87,13 @@ class Runner:
             self._predictAndLog(idxFrom=cur, idxTo=nxt)
 
             # evaluate model
-            evaluateThld = 48 * 2
+            evaluateThld = evaluateThreshold
             if cur >= evaluateThld and not self.update:
                 self._evaluateResult(
                     method='mape', idxFrom=cur-evaluateThld, idxTo=cur, baseScore=0.3)
 
             # retrain model
-            trainThld = 48 * 2
+            trainThld = trainThreshold
             if self.update and cur > trainThld:
                 logging.info('retrain')
                 XTrain, yTrain = getTrainData(

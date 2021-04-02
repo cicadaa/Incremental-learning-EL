@@ -7,8 +7,8 @@ from datetime import datetime, timedelta
 from matplotlib import pyplot as plt
 
 
-__all__ = ['loadModel', 'saveModel',
-           'trainAndUpdateModel', 'plotResult']
+__all__ = ['loadModel', 'plotResult']
+
 # Model Management=============================================================
 
 
@@ -17,24 +17,8 @@ def loadModel(path):
         model = pickle.load(f)
     return model
 
-
-def saveModel(model, path):
-    with open(path, 'wb') as f:
-        pickle.dump(model, f)
-
-
-def trainModel(model, XTrain, yTrain):
-    logging.info('start training')
-    model.fit(XTrain, yTrain)
-    logging.info('finished training')
-
-
-def trainAndUpdateModel(model, XTrain, yTrain, modelId):
-    model.fit(XTrain, yTrain)
-    saveModel(model, 'src/models/latestModel{0}.pkl'.format(modelId))
-
-
 # Visualization ===============================================================
+
 
 def plotResult(actual, prediction, figsize=(26, 10)):
     _, ax = plt.subplots(figsize=figsize)

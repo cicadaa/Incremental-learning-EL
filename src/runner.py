@@ -17,7 +17,6 @@ class Runner:
         self.dataset = dataset
         self.X = self.dataset.X
         self.y = self.dataset.y
-
         self.model = model
         self.predList, self.actualList, self.scoreList = [], [], []
 
@@ -25,19 +24,17 @@ class Runner:
         # pretrain model
         XTrain, yTrain = self.dataset.getTrainData(
             idxFrom=idxFrom, idxTo=idxTo)
-
         XTrain = self.model.scaler.fit_transform(XTrain)
-
         self.model.fit(XTrain, yTrain)
 
-        # get new data pool
+        # update dataset
         self.dataset.X = self.dataset.X[idxTo:]
         self.dataset.y = self.dataset.y[idxTo:]
         self.dataset.times = self.dataset.times[idxTo:]
 
         self.model.save()
 
-    def _evaluateResult(self, method, idxFrom, idxTo, baseScore):
+    def _evaluate(self, method, idxFrom, idxTo, baseScore):
         yPred, yActual = self.predList[idxFrom:
                                        idxTo], self.actualList[idxFrom: idxTo]
         if not self.update:
@@ -78,7 +75,7 @@ class Runner:
             # evaluate model
             evaluateThld = evaluateThreshold
             if cur >= evaluateThld and not self.update:
-                self._evaluateResult(
+                self._evaluate(
                     method='mape', idxFrom=cur-evaluateThld, idxTo=cur, baseScore=0.3)
 
             # retrain model

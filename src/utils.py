@@ -8,7 +8,7 @@ from matplotlib import pyplot as plt
 
 
 __all__ = ['loadModel', 'saveModel',
-           'trainAndUpdateModel', 'plotResult', 'getSourceData', 'getTrainData', 'shiftData', 'splitData']
+           'trainAndUpdateModel', 'plotResult']
 # Model Management=============================================================
 
 
@@ -50,33 +50,3 @@ def getNextTime(start, interval):
     timeFormat = "%Y-%m-%d %H:%M:%S"
     end = datetime.strptime(start, timeFormat) + timedelta(hours=interval)
     return end.strftime(timeFormat)
-
-
-# Prepare Data ===============================================================
-
-def getTrainData(X, y, idxFrom, idxTo):
-    XTrain = np.array(X[idxFrom: idxTo].copy())
-    yTrain = np.array(y[idxFrom: idxTo].copy())
-    return XTrain, yTrain
-
-
-def shiftData(df, features, shiftFrom, shiftTo):
-    for i in range(shiftFrom, shiftTo + 1):
-        for f in features:
-            df['prev_' + f + str(i)] = df[f].shift(periods=i)
-    return df.dropna().copy()
-
-
-def splitData(df):
-    removeSet = set(['datetime', 'meter', 'temp'])
-    features = [e for e in list(df.columns) if e not in removeSet]
-    return df[features].copy(), df['meter'].copy(), df['datetime'].copy()
-
-
-def getSourceData(dataPath):
-    try:
-        df = pd.read_csv(dataPath)
-    except Exception as e:
-        logging.error(e)
-        raise e
-    return df.dropna()

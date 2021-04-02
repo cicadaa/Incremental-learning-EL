@@ -13,33 +13,28 @@ __all__ = ['Runner']
 
 
 class Runner:
-    def __init__(self, dataPath, features, shiftRange, model):
-        self.dataPath = dataPath
-        self.features = features
-        self.shiftRange = shiftRange
-        self.X, self.y, self.times = self._prepareData()
+    def __init__(self, dataset, model):
+        self.dataset = dataset
+        self.X = self.dataset.X
+        self.y = self.dataset.y
 
         self.model = model
         self.predList, self.actualList, self.scoreList = [], [], []
 
-    def _prepareData(self):
-        df = getSourceData(self.dataPath)
-        df = shiftData(df=df, features=self.features,
-                       shiftFrom=self.shiftRange[0], shiftTo=self.shiftRange[1])
-        df = df[self.shiftRange[0]:].reset_index().copy()
-        return splitData(df)
-
     def _warmStart(self, idxFrom, idxTo):
         # pretrain model
-        XTrain, yTrain = getTrainData(
-            X=self.X, y=self.y, idxFrom=idxFrom, idxTo=idxTo)
+        XTrain, yTrain = self.dataset.getTrainData(
+            idxFrom=idxFrom, idxTo=idxTo)
 
         XTrain = self.model.scaler.fit_transform(XTrain)
+
         self.model.fit(XTrain, yTrain)
 
         # get new data pool
-        self.X, self.y, self.times = self.X[idxTo:
-                                            ], self.y[idxTo:], self.times[idxTo:]
+        self.dataset.X = self.dataset.X[idxTo:]
+        self.dataset.y = self.dataset.y[idxTo:]
+        self.dataset.times = self.dataset.times[idxTo:]
+
         self.model.save()
 
     def _evaluateResult(self, method, idxFrom, idxTo, baseScore):
@@ -56,8 +51,8 @@ class Runner:
             self.scoreList.append(score)
 
     def _predictAndLog(self, idxFrom, idxTo):
-        XTrain, yTrain = getTrainData(
-            X=self.X, y=self.y, idxFrom=idxFrom, idxTo=idxTo)
+        XTrain, yTrain = self.dataset.getTrainData(
+            idxFrom=idxFrom, idxTo=idxTo)
         predVal = self.model.predict(XTrain)
         self.predList.append(predVal[0])
         self.actualList.append(yTrain[0])
@@ -90,8 +85,8 @@ class Runner:
             trainThld = trainThreshold
             if self.update and cur > trainThld:
                 logging.info('retrain')
-                XTrain, yTrain = getTrainData(
-                    X=self.X, y=self.y, idxFrom=cur-48, idxTo=cur)
+                XTrain, yTrain = self.dataset.getTrainData(
+                    idxFrom=cur-48, idxTo=cur)
                 train = threading.Thread(
                     target=self.model.fit(XTrain, yTrain), args=(1,))
                 train.start()

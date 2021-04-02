@@ -4,6 +4,10 @@ from .models import SVRModel
 
 
 if __name__ == "__main__":
+    logformat = "%(asctime)s: %(message)s"
+    logging.basicConfig(format=logformat, level=logging.INFO,
+                        datefmt="%H:%M:%S")
+
     dataPath = LocalConfig.dataPath
     modelPath = LocalConfig.modelPath
     features = LocalConfig.features

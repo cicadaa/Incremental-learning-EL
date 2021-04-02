@@ -28,9 +28,6 @@ class SVRModel:
         self.update = True
         self.save()
 
-    def update(self):
-        pass
-
     def predict(self, X):
         XTrans = self.scaler.transform(X)  # normalize input
         return self.model.predict(XTrans)

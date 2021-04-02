@@ -46,30 +46,24 @@ class Runner:
         yPred, yActual = self.predList[idxFrom:
                                        idxTo], self.actualList[idxFrom: idxTo]
         if not self.update:
-
             if method == 'r2':
                 score = r2_score(y_pred=yPred, y_true=yActual)
                 self.update = False if score > baseScore else True
-
             elif method == 'mape':
                 score = mean_absolute_percentage_error(
                     y_pred=yPred, y_true=yActual)
                 self.update = False if score < baseScore else True
-
             self.scoreList.append(score)
 
     def _predictAndLog(self, idxFrom, idxTo):
         XTrain, yTrain = getTrainData(
             X=self.X, y=self.y, idxFrom=idxFrom, idxTo=idxTo)
         predVal = self.model.predict(XTrain)
-
         self.predList.append(predVal[0])
         self.actualList.append(yTrain[0])
 
     def run(self, duration, interval, evaluateThreshold=96, trainThreshold=96):
-        logformat = "%(asctime)s: %(message)s"
-        logging.basicConfig(format=logformat, level=logging.INFO,
-                            datefmt="%H:%M:%S")
+
         begin = time.time()
         cur = 0
         nxt = 48

@@ -17,6 +17,10 @@ class Runner:
         self.dataset = dataset
         self.X = self.dataset.X
         self.y = self.dataset.y
+<<<<<<< HEAD
+=======
+
+>>>>>>> master
         self.model = model
         self.predList, self.actualList, self.scoreList = [], [], []
 
@@ -24,10 +28,19 @@ class Runner:
         # pretrain model
         XTrain, yTrain = self.dataset.getTrainData(
             idxFrom=idxFrom, idxTo=idxTo)
+<<<<<<< HEAD
+=======
+
+>>>>>>> master
         XTrain = self.model.scaler.fit_transform(XTrain)
+
         self.model.fit(XTrain, yTrain)
 
+<<<<<<< HEAD
         # update dataset
+=======
+        # get new data pool
+>>>>>>> master
         self.dataset.X = self.dataset.X[idxTo:]
         self.dataset.y = self.dataset.y[idxTo:]
         self.dataset.times = self.dataset.times[idxTo:]

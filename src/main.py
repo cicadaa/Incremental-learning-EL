@@ -1,6 +1,6 @@
 from .config import LocalConfig
 from .runner import Runner
-from .models import SVRModel
+from .models import SVRModel, OSVRModel
 from .dataset import Dataset
 import logging
 
@@ -10,15 +10,17 @@ if __name__ == "__main__":
     logging.basicConfig(format=logformat, level=logging.INFO,
                         datefmt="%H:%M:%S")
 
-    dataPath = LocalConfig.dataPath
+    dataPath = 'datafull.csv'
     modelPath = LocalConfig.modelPath
     features = LocalConfig.features
     shiftRange = LocalConfig.shiftRange
+    removeSet = LocalConfig.removeSet
 
-    model = SVRModel(modelPath=modelPath, kernel='rbf',
-                     C=100, gamma=0.04, epsilon=.01)
-    dataset = Dataset(dataPath=dataPath, features=features,
-                      shiftRange=shiftRange)
+    model = OSVRModel(learning_rate='constant', eta0=0.4,
+                      loss='epsilon_insensitive', penalty='l2')
 
-    runner = Runner(dataset=dataset, model=model)
-    runner.run(duration=1, interval=0.1)
+    dataset = Dataset(dataPath=dataPath, shiftFeatures=['meter'],
+                      shiftRange=shiftRange, removeSet=removeSet)
+
+    runner = Runner(warmStartPoint=1, dataset=dataset, model=model)
+    runner.run(duration=60, interval=0.01)

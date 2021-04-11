@@ -4,9 +4,9 @@ import numpy as np
 
 
 class Dataset:
-    def __init__(self, dataPath, features, shiftRange, removeSet=set(['datetime', 'meter', 'temp'])):
+    def __init__(self, dataPath, shiftFeatures, shiftRange, removeSet=set(['index', 'datetime', 'meter', 'temp'])):
         self.dataPath = dataPath
-        self.features = features
+        self.shiftFeatures = shiftFeatures
         self.shiftRange = shiftRange
         self.removeSet = removeSet
         self.data = self._initData()
@@ -28,8 +28,8 @@ class Dataset:
 
     @y.setter
     def y(self, value):
-        if type(value) is not pd.DataFrame:
-            raise ValueError('y should be dataframe')
+        if type(value) is not pd.Series:
+            raise ValueError('y should be Series')
         self._y = value
 
     @property
@@ -38,20 +38,19 @@ class Dataset:
 
     @times.setter
     def times(self, value):
-        if type(value) is not pd.DataFrame:
-            raise ValueError('times should be dataframe')
+        if type(value) is not pd.Series:
+            raise ValueError('times should be Series')
         self._times = value
 
     def _initData(self):
         df = self._readData(self.dataPath)
-        df = self._shiftData(df=df, features=self.features,
-                             shiftFrom=self.shiftRange[0], shiftTo=self.shiftRange[1])
+        df = self._shiftData(df=df)
 
         return df[self.shiftRange[0]:].reset_index().copy()
 
-    def _shiftData(self, df, features, shiftFrom, shiftTo):
-        for i in range(shiftFrom, shiftTo + 1):
-            for f in features:
+    def _shiftData(self, df):
+        for i in range(self.shiftRange[0], self.shiftRange[1] + 1):
+            for f in self.shiftFeatures:
                 df['prev_' + f + str(i)] = df[f].shift(periods=i)
         return df.dropna().copy()
 

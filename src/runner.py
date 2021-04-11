@@ -13,93 +13,72 @@ __all__ = ['Runner']
 
 
 class Runner:
-    def __init__(self, dataset, model):
-        self.dataset = dataset
-        self.X = self.dataset.X
-        self.y = self.dataset.y
-<<<<<<< HEAD
-=======
+    def __init__(self, warmStartPoint, dataset, model):
+        self.cur = None
+        self.nxt = None
 
->>>>>>> master
+        self.X = dataset.X
+        self.y = dataset.y
+        self.dataset = dataset
+
         self.model = model
+        self.startPont = warmStartPoint
         self.predList, self.actualList, self.scoreList = [], [], []
 
-    def _warmStart(self, idxFrom, idxTo):
-        # pretrain model
+    def _warmStart(self):
         XTrain, yTrain = self.dataset.getTrainData(
-            idxFrom=idxFrom, idxTo=idxTo)
-<<<<<<< HEAD
-=======
+            idxFrom=0, idxTo=self.startPont)
+        self.model.learn(XTrain, yTrain)
 
->>>>>>> master
-        XTrain = self.model.scaler.fit_transform(XTrain)
-
-        self.model.fit(XTrain, yTrain)
-
-<<<<<<< HEAD
-        # update dataset
-=======
-        # get new data pool
->>>>>>> master
-        self.dataset.X = self.dataset.X[idxTo:]
-        self.dataset.y = self.dataset.y[idxTo:]
-        self.dataset.times = self.dataset.times[idxTo:]
-
-        self.model.save()
-
-    def _evaluate(self, method, idxFrom, idxTo, baseScore):
-        yPred, yActual = self.predList[idxFrom:
-                                       idxTo], self.actualList[idxFrom: idxTo]
-        if not self.update:
+    def _evaluate(self, method, range, baseScore):
+        idxFrom, idxTo = self.cur - range, self.cur
+        if self.model.acceptable:
+            yPred, yActual = self.predList[idxFrom:
+                                           idxTo], self.actualList[idxFrom: idxTo]
             if method == 'r2':
                 score = r2_score(y_pred=yPred, y_true=yActual)
-                self.update = False if score > baseScore else True
+                self.model.acceptable = False if score < baseScore else True
             elif method == 'mape':
                 score = mean_absolute_percentage_error(
                     y_pred=yPred, y_true=yActual)
-                self.update = False if score < baseScore else True
+                self.model.acceptable = False if score > baseScore else True
             self.scoreList.append(score)
 
-    def _predictAndLog(self, idxFrom, idxTo):
+    def _predict(self, log=True):
         XTrain, yTrain = self.dataset.getTrainData(
-            idxFrom=idxFrom, idxTo=idxTo)
-        predVal = self.model.predict(XTrain)
-        self.predList.append(predVal[0])
-        self.actualList.append(yTrain[0])
+            idxFrom=self.cur, idxTo=self.nxt)
+        yPred = self.model.predict(XTrain)
+        if log:
+            self.predList.append(yPred[0])
+            self.actualList.append(yTrain[0])
 
-    def run(self, duration, interval, evaluateThreshold=96, trainThreshold=96):
+    def _learn(self):
+        XTrain, yTrain = self.dataset.getTrainData(
+            idxFrom=self.cur, idxTo=self.nxt)
+        self.model.learn(XTrain, yTrain)
+
+    def _update(self):
+        self.cur += 1
+        self.nxt = self.cur + 1
+
+    def run(self, duration, interval, evaluate=False):
 
         begin = time.time()
-        cur = 0
-        nxt = 48
-        self._warmStart(idxFrom=cur, idxTo=nxt)
+        self._warmStart()
+        self.cur = self.startPont
 
         # streaming
         while time.time() - begin < duration:
-            cur = nxt
-            nxt = cur + 1
-
             time.sleep(interval)
-            self.update = False
 
-            # predict
-            self._predictAndLog(idxFrom=cur, idxTo=nxt)
+            self._update()
+            self._predict()
 
             # evaluate model
-            evaluateThld = evaluateThreshold
-            if cur >= evaluateThld and not self.update:
-                self._evaluate(
-                    method='mape', idxFrom=cur-evaluateThld, idxTo=cur, baseScore=0.3)
+            acceptable = self._evaluate('r2', 24, 0.7) if evaluate else False
 
-            # retrain model
-            trainThld = trainThreshold
-            if self.update and cur > trainThld:
-                logging.info('retrain')
-                XTrain, yTrain = self.dataset.getTrainData(
-                    idxFrom=cur-48, idxTo=cur)
-                train = threading.Thread(
-                    target=self.model.fit(XTrain, yTrain), args=(1,))
-                train.start()
+            if not acceptable:
+                self._learn()
 
-        # logging.info(self.scoreList)
+        logging.info('scorelist : ' + str(self.scoreList))
         plotResult(self.actualList, self.predList)

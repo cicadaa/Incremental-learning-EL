@@ -1,13 +1,16 @@
 import time
 import pickle
 import logging
+import numpy as np
 import pandas as pd
 import numpy as np
+import plotly.graph_objects as go
 from datetime import datetime, timedelta
 from matplotlib import pyplot as plt
+import matplotlib.dates as mdates
 
 
-__all__ = ['loadModel', 'plotResult']
+__all__ = ['loadModel', 'plotResult', 'plotlyplot']
 
 # Model Management=============================================================
 
@@ -20,12 +23,38 @@ def loadModel(path):
 # Visualization ===============================================================
 
 
-def plotResult(actual, prediction, figsize=(26, 10)):
+def plotResult(actual, prediction, times, figsize=(26, 10)):
+    plt.style.use('seaborn')
+    month_day_fmt = mdates.DateFormatter('%b %d')
+
     _, ax = plt.subplots(figsize=figsize)
-    ax.plot(actual, label='Actual', color='blue')
-    ax.plot(prediction, label='Prediction', color='red')
+    ax.plot(times, actual, label='Actual', color='blue')
+    ax.plot(times, prediction, label='Prediction', color='red')
     ax.legend()
+    ax.xaxis.set_major_formatter(month_day_fmt)
     plt.show()
+
+
+def plotlyplot(actual, prediction, times, plotname):
+    print(actual[:5])
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=times, y=actual,
+                             mode='lines',
+
+                             name='actual'))
+    fig.add_trace(go.Scatter(x=times, y=prediction,
+                             mode='lines',
+                             name='prediction'))
+
+    fig.update_layout(
+        xaxis=dict(
+            rangeslider=dict(
+                visible=True
+            ),
+        )
+    )
+    fig.show()
+    fig.write_html(plotname+".html")
 
 
 # Time Formater ===============================================================

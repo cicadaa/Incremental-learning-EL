@@ -1,15 +1,20 @@
-import pandas as pd
 import logging
 import numpy as np
+import pandas as pd
+import torch
+from sklearn import preprocessing as pre
+from torch.autograd import Variable
 
 
 class Dataset:
-    def __init__(self, dataPath, shiftFeatures, shiftRange, removeSet=set(['index', 'datetime', 'meter', 'temp'])):
+    def __init__(self, dataPath, shiftFeatures, shiftRange, isTorch=False, removeSet=set(['index', 'datetime', 'meter', 'temp'])):
+        self.isTorch = isTorch
         self.dataPath = dataPath
         self.shiftFeatures = shiftFeatures
         self.shiftRange = shiftRange
         self.removeSet = removeSet
         self.data = self._initData()
+        self.scaler = pre.StandardScaler()
         self._X, self._y, self._times = self._splitData(self.data)
 
     @property
@@ -67,4 +72,13 @@ class Dataset:
         return df.dropna()
 
     def getTrainData(self, idxFrom, idxTo):
-        return np.array(self.X[idxFrom: idxTo].copy()), np.array(self.y[idxFrom: idxTo].copy())
+
+        X = np.array(self.X[idxFrom: idxTo].copy())
+        y = np.array(self.y[idxFrom: idxTo].copy())
+
+        self.scaler = self.scaler.partial_fit(X)
+        XTrans = self.scaler.transform(X)
+
+        if self.isTorch:
+            return Variable(torch.Tensor([XTrans])),  Variable(torch.Tensor([y]))
+        return XTrans, y

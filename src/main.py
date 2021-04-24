@@ -10,7 +10,7 @@ if __name__ == "__main__":
     logging.basicConfig(format=logformat, level=logging.INFO,
                         datefmt="%H:%M:%S")
 
-    dataPath = 'data_accurateTemp.csv'
+    dataPath = '/Users/cicada/Documents/DTU_resource/Thesis/Incremental-learning-EL/src/NI_hourly.csv'
     modelPath = LocalConfig.modelPath
     shiftFeatures = LocalConfig.features
     shiftRange = LocalConfig.shiftRange
@@ -19,16 +19,16 @@ if __name__ == "__main__":
     # model = OSVRModel(learning_rate='constant', eta0=0.3,
     #                   loss='epsilon_insensitive', penalty='l2')
 
-    learning_rate = 0.01
+    learning_rate = 0.1
     input_size = 1
-    hidden_size = 2
+    hidden_size = 128
     num_layers = 1
     num_classes = 1
 
     dataset = Dataset(dataPath=dataPath, shiftFeatures=['meter'],
                       shiftRange=shiftRange, removeSet=removeSet, isTorch=True)
-
+  
     lstm = LSTM(num_classes, input_size, hidden_size, num_layers)
 
-    runner = Runner(warmStartPoint=1, dataset=dataset, model=lstm, deep=True)
-    runner.run(duration=1, interval=0.2, plotname='withouttemp')
+    runner = Runner(warmStartPoint=1, dataset=dataset, model=lstm, deep=True, learningRate=learning_rate)
+    runner.run(duration=10, interval=0.01, plotname='withouttemp', plot=True)

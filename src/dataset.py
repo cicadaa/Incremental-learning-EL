@@ -11,22 +11,12 @@ class Dataset:
         self.isTorch = isTorch
         self.dataPath = dataPath
         self.shiftFeatures = shiftFeatures
+        self.inputLength = None
         self.shiftRange = shiftRange
         self.removeSet = removeSet
-        self.data = self._initData()
-        self.scaler = pre.StandardScaler()
-        self._X, self._y, self._times = self._splitData(self.data)
-
-    @property
-    def X(self):
-        return self._X
-
-    @X.setter
-    def X(self, value):
-        if type(value) is not pd.DataFrame:
-            raise ValueError('X should be dataframe')
-        self._X = value
-
+        self.data, self._y, self._times = self._initData()
+        self.scaler = pre.MinMaxScaler()
+        
     @property
     def y(self):
         return self._y
@@ -34,8 +24,9 @@ class Dataset:
     @y.setter
     def y(self, value):
         if type(value) is not pd.Series:
-            raise ValueError('y should be Series')
-        self._y = value
+            raise ValueError('times should be Series')
+        self._y = value       
+
 
     @property
     def times(self):
@@ -49,9 +40,10 @@ class Dataset:
 
     def _initData(self):
         df = self._readData(self.dataPath)
+        df = df.sort_values(by=['datetime'])
         df = self._shiftData(df=df)
-
-        return df[self.shiftRange[0]:].reset_index().copy()
+        df = df[self.shiftRange[0]:].reset_index()
+        return self._splitData(df)
 
     def _shiftData(self, df):
         for i in range(self.shiftRange[0], self.shiftRange[1] + 1):
@@ -60,8 +52,10 @@ class Dataset:
         return df.dropna().copy()
 
     def _splitData(self, df):
-        features = [e for e in list(df.columns) if e not in self.removeSet]
+        features = [e for e in list(df.columns) if e not in self.removeSet] +['meter']
+        self.inputLength = len(features) - 1
         return df[features].copy(), df['meter'].copy(), df['datetime'].copy()
+
 
     def _readData(self, dataPath):
         try:
@@ -72,13 +66,16 @@ class Dataset:
         return df.dropna()
 
     def getTrainData(self, idxFrom, idxTo):
+        
+        trainData = self.data.iloc[idxFrom:idxTo, :self.inputLength+1].copy()
+        trainData = np.array(trainData)[0]
 
-        X = np.array(self.X[idxFrom: idxTo].copy())
-        y = np.array(self.y[idxFrom: idxTo].copy())
+        self.scaler = self.scaler.partial_fit(trainData[:, np.newaxis])
+        trainData = self.scaler.transform(trainData[:, np.newaxis])
 
-        self.scaler = self.scaler.partial_fit(X)
-        XTrans = self.scaler.transform(X)
-
+        X = np.array(trainData[:self.inputLength].copy())
+        y = np.array(trainData[self.inputLength:].copy())
+ 
         if self.isTorch:
-            return Variable(torch.Tensor([XTrans])),  Variable(torch.Tensor([y]))
-        return XTrans, y
+            return Variable(torch.Tensor([X])),  Variable(torch.Tensor(y))
+        return X, y

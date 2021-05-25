@@ -1,3 +1,5 @@
+from numpy import record
+from torch.nn.modules.module import T
 from .config import LocalConfig
 from .runner import Runner
 from .models import SVRModel, OSVRModel, LSTM
@@ -31,4 +33,4 @@ if __name__ == "__main__":
     lstm = LSTM(num_classes, input_size, hidden_size, num_layers)
 
     runner = Runner(warmStartPoint=1, dataset=dataset, model=lstm, deep=True, learningRate=learning_rate)
-    runner.run(duration=10, interval=0.01, plotname='withouttemp', plot=True)
+    runner.run(duration=10, interval=0.01, name='OLSTM', plot=True, record=True)

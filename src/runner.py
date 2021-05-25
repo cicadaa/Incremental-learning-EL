@@ -1,10 +1,6 @@
-import os
-import os.path
 import time
-import threading
-import numpy as np
 from .utils import *
-import logging
+import pandas as pd
 from .config import LocalConfig
 from .models import DeepTrainer
 from sklearn.metrics import r2_score, mean_absolute_percentage_error
@@ -80,7 +76,7 @@ class Runner:
         self.cur += 1
         self.nxt = self.cur + 1
 
-    def run(self, duration, plotname, interval, evaluate=False, deep=False, plot=False):
+    def run(self, duration, name, interval, evaluate=False, deep=False, plot=False, record=True):
 
         begin = time.time()
         self._warmStart()
@@ -99,4 +95,14 @@ class Runner:
 
         if plot:
             plotlyplot(actual=self.actualList, prediction=self.predList,
-                   times=self.times[:self.cur-1], plotname=plotname)
+                   times=self.times[:self.cur-1], plotname=name)
+
+        if record:
+            # actualvalue = self.actualList
+            # predictvalue = self.predList
+            # timesidx = self.times[:self.cur-1]
+            
+            # dictionary of lists 
+            dict = {'actual': self.actualList, 'predict': self.predList, 'time': self.times[:self.cur-1]}         
+            df = pd.DataFrame(dict)
+            df.to_csv(name + 'result.csv')

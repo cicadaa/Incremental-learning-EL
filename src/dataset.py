@@ -7,10 +7,11 @@ from torch.autograd import Variable
 
 
 class Dataset:
-    def __init__(self, dataPath, shiftFeatures, shiftRange, isTorch=False, removeSet=set(['index', 'datetime', 'meter', 'temp'])):
+    def __init__(self, dataPath, normalizeFeatures, shiftFeatures, shiftRange, isTorch=False, removeSet=set(['index', 'datetime', 'meter', 'temp'])):
         self.isTorch = isTorch
         self.dataPath = dataPath
         self.shiftFeatures = shiftFeatures
+        self.normalizeFeatures = normalizeFeatures
         self.inputLength = None
         self.shiftRange = shiftRange
         self.removeSet = removeSet

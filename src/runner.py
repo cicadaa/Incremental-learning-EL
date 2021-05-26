@@ -76,7 +76,7 @@ class Runner:
         self.cur += 1
         self.nxt = self.cur + 1
 
-    def run(self, duration, name, interval, evaluate=False, deep=False, plot=False, record=True):
+    def run(self, duration, name, interval, evaluate=False, deep=False, plot=False, record=True, verbose=True):
 
         begin = time.time()
         self._warmStart()
@@ -98,11 +98,9 @@ class Runner:
                    times=self.times[:self.cur-1], plotname=name)
 
         if record:
-            # actualvalue = self.actualList
-            # predictvalue = self.predList
-            # timesidx = self.times[:self.cur-1]
-            
-            # dictionary of lists 
             dict = {'actual': self.actualList, 'predict': self.predList, 'time': self.times[:self.cur-1]}         
             df = pd.DataFrame(dict)
             df.to_csv(name + 'result.csv')
+
+        if verbose:
+            print(mean_absolute_percentage_error(self.actualList[200:], self.predList[200:]))

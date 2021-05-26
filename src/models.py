@@ -49,6 +49,7 @@ class LSTM(nn.Module):
         self.fc = nn.Linear(hidden_size, num_classes)
 
     def forward(self, x):
+        # print(x.size())
         h_0 = Variable(torch.zeros(
             self.num_layers, x.size(0), self.hidden_size))
         

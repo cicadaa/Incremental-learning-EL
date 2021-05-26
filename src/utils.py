@@ -36,7 +36,6 @@ def plotResult(actual, prediction, times, figsize=(26, 10)):
 
 
 def plotlyplot(actual, prediction, times, plotname):
-    print(actual[:5])
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=times, y=actual,
                              mode='lines',

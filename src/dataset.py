@@ -7,15 +7,15 @@ from torch.autograd import Variable
 
 
 class Dataset:
-    def __init__(self, dataPath, normalizeFeatures, shiftFeatures, shiftRange, isTorch=False, removeSet=set(['index', 'datetime', 'meter', 'temp'])):
+    def __init__(self, dataPath, categoryFeatures, shiftFeatures, shiftRange, isTorch=False, removeFeatures=set(['index', 'datetime', 'meter', 'temp', 'Unnamed: 0'])):
         self.isTorch = isTorch
         self.dataPath = dataPath
         self.shiftFeatures = shiftFeatures
-        self.normalizeFeatures = normalizeFeatures
-        self.inputLength = None
+        self.categoryFeatures = categoryFeatures
+        self.scaleFeatureLength = None
         self.shiftRange = shiftRange
-        self.removeSet = removeSet
-        self.data, self._y, self._times = self._initData()
+        self.removeFeatures = removeFeatures
+        self.scaleData, self.nonscaleData, self._y, self._times = self._initData()
         self.scaler = pre.MinMaxScaler()
         
     @property
@@ -53,9 +53,11 @@ class Dataset:
         return df.dropna().copy()
 
     def _splitData(self, df):
-        features = [e for e in list(df.columns) if e not in self.removeSet] +['meter']
-        self.inputLength = len(features) - 1
-        return df[features].copy(), df['meter'].copy(), df['datetime'].copy()
+        allFeatures = [f for f in list(df.columns) if f not in self.removeFeatures]
+        scaleFeatures = [f for f in allFeatures if f not in self.categoryFeatures]+['meter']
+        self.scaleFeatureLength = len(scaleFeatures)-1
+        nonscaleFeatures = [f for f in allFeatures if f in self.categoryFeatures]
+        return df[scaleFeatures].copy(), df[nonscaleFeatures].copy(), df['meter'].copy(), df['datetime'].copy()
 
 
     def _readData(self, dataPath):
@@ -68,15 +70,22 @@ class Dataset:
 
     def getTrainData(self, idxFrom, idxTo):
         
-        trainData = self.data.iloc[idxFrom:idxTo, :self.inputLength+1].copy()
-        trainData = np.array(trainData)[0]
+        scaleData = self.scaleData.iloc[idxFrom:idxTo,:self.scaleFeatureLength+1].copy()
+        scaleData = np.array(scaleData)[0]
 
-        self.scaler = self.scaler.partial_fit(trainData[:, np.newaxis])
-        trainData = self.scaler.transform(trainData[:, np.newaxis])
-
-        X = np.array(trainData[:self.inputLength].copy())
-        y = np.array(trainData[self.inputLength:].copy())
+        nonscaleData = self.nonscaleData.iloc[idxFrom:idxTo,:].copy().to_numpy()
+        nonscaleData =np.reshape(nonscaleData, (len(self.nonscaleData.columns), 1))
+  
+        self.scaler = self.scaler.partial_fit(scaleData[:, np.newaxis])
+        trainData = self.scaler.transform(scaleData[:, np.newaxis])
+        
+        Feature = np.array(trainData[:self.scaleFeatureLength].copy())
+        Feature = np.concatenate((Feature, nonscaleData), axis=0)
+        Feature = np.reshape(Feature, (1,1,41))
+        # print(Feature)
  
+        y = np.array(trainData[self.scaleFeatureLength:].copy())
+    
         if self.isTorch:
-            return Variable(torch.Tensor([X])),  Variable(torch.Tensor(y))
-        return X, y
+            return Variable(torch.Tensor(Feature)),  Variable(torch.Tensor(y))
+        return Feature, y

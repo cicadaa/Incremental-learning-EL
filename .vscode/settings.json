@@ -1,2 +1,4 @@
 {
+    "python.pythonPath": "/Users/cicada/.virtualenvs/adba/bin/python",
+    "jupyter.jupyterServerType": "local"
 }

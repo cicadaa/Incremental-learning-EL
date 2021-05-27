@@ -34,10 +34,10 @@ class OSVRModel:
         return self.model.predict(X)
 
 
-class LSTM(nn.Module):
+class OLSTM(nn.Module):
 
     def __init__(self, num_classes, input_size, hidden_size, num_layers):
-        super(LSTM, self).__init__() 
+        super(OLSTM, self).__init__() 
         self.num_classes = num_classes
         self.num_layers = num_layers
         self.input_size = input_size

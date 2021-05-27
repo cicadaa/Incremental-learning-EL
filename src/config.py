@@ -6,7 +6,7 @@ class LocalConfig:
     dataPath = 'data.csv'
     modelPath = 'src/modelsFiles/'
 
-    removeFeatures = set(['index', 'datetime', 'meter', 'yearday', 'temp','dayOfYear'])
-    shiftRange = [12, 48]
+    removeFeatures = set(['index', 'datetime', 'meter', 'yearday', 'temp', 'Unnamed: 0'])
+    shiftRange = [12, 24]
     shiftFeatures = ['meter']
     categoryFeatures=['dayOfYear','hourOfDay','dayOfWeek','holiday','weekend']

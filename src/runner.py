@@ -11,8 +11,8 @@ __all__ = ['Runner']
 class Runner:
     def __init__(self, warmStartPoint, dataset, model, deep=False, learningRate=0.01, lazy=False):
         #stream indicator
-        self.cur = None
-        self.nxt = None    
+        self.cur = 0
+        self.nxt = 1    
         #training data 
         self.times = dataset.times
         self.yTrue = dataset.y
@@ -57,9 +57,12 @@ class Runner:
             yPred = self.model.forward(XTrain).data.numpy()
             yPred = self.dataset.scaler.inverse_transform(yPred)[0]
             yTrain = self.yTrue[self.cur]
+            print('ypred',yPred)
+
         else:
             yPred = self.model.predict(XTrain)
-            print('ypred',yPred)
+            yTrain = self.yTrue[self.cur]
+            # print(yPred)
 
         if log:
             self.predList.append(yPred[0])
@@ -105,16 +108,15 @@ class Runner:
             if self.lazy and self.cur > 12:
                 acceptable = self._evaluate('mape', 12, 0.1)
                 if not acceptable:
-                    print('train')
                     self._learnMany(numberOfData=12)
             else:
-                self._learnOne()       
-
+                self._learnOne()   
+               
         if plot:
             plotlyplot(actual=self.actualList, prediction=self.predList,
                    times=self.times[:self.cur-1], plotname=name)
 
-        if record:
+        if record:         
             dict = {'actual': self.actualList, 'predict': self.predList, 'time': self.times[:self.cur-1]}         
             df = pd.DataFrame(dict)
             df.to_csv(name + 'result.csv')

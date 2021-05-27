@@ -19,17 +19,15 @@ if __name__ == "__main__":
     shiftFeatures = LocalConfig.shiftFeatures
     shiftRange = LocalConfig.shiftRange
     removeFeatures = LocalConfig.removeFeatures
-
-    osvr = OSVRModel(learning_rate='constant', eta0=0.3,
+    learning_rate = 0.01 #best rate
+    
+    osvr = OSVRModel(learning_rate='constant', eta0=0.015,
                       loss='epsilon_insensitive', penalty='l2')
 
     olstm = OLSTM(num_classes=1, input_size=1, hidden_size=128, num_layers=1)
 
-    learning_rate = 0.01 #best rate
-
-
-    dataset = Dataset(dataPath=dataPath, shiftFeatures=['meter'], categoryFeatures=['dayOfYear','hourOfDay','dayOfWeek','holiday','weekend'],
-                      shiftRange=shiftRange, removeFeatures=removeFeatures, isTorch=False)
+    dataset = Dataset(dataPath=dataPath, shiftFeatures=['meter'], categoryFeatures=categoryFeatures,
+                      shiftRange=shiftRange, removeFeatures=removeFeatures, isTorch=False )
     
-    runner = Runner(warmStartPoint=1, dataset=dataset, model=osvr, deep=False, learningRate=learning_rate, lazy=False)
-    runner.run(duration=0.1, interval=0, name='OSVR', plot=True, record=True, verbose=False)
+    runner = Runner(warmStartPoint=1, dataset=dataset, model=osvr, deep=False, learningRate=learning_rate, lazy=True)
+    runner.run(duration=5, interval=0, name='OSVR', plot=True, record=True, verbose=True)

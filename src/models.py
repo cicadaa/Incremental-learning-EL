@@ -9,7 +9,7 @@ from sklearn.linear_model import SGDRegressor
 
 class SVRModel:
 
-    def __init__(self, modelPath, updateStatus=False, acceptable=True, kernel='rbf', C=10, gamma=0.04, epsilon=.01):
+    def __init__(self, modelPath, kernel='rbf', C=10, gamma=0.04, epsilon=.01):
         self.modelPath = modelPath
         self.model = SVR(kernel=kernel, C=C, gamma=gamma, epsilon=epsilon)
         self.scaler = pre.StandardScaler()
@@ -23,7 +23,7 @@ class SVRModel:
 
 class OSVRModel:
 
-    def __init__(self, learning_rate='constant', eta0=0.4, loss='epsilon_insensitive', penalty='l2'):
+    def __init__(self, learning_rate='constant', eta0=0.04, loss='epsilon_insensitive', penalty='l2'):
         self.model = SGDRegressor(
             learning_rate=learning_rate, eta0=eta0, loss=loss, penalty=penalty)
 

@@ -1,4 +1,5 @@
 import logging
+from re import S
 import numpy as np
 from numpy.core.fromnumeric import size
 import pandas as pd
@@ -8,7 +9,7 @@ from torch.autograd import Variable
 
 
 class Dataset:
-    def __init__(self, dataPath, categoryFeatures, shiftFeatures, shiftRange, isTorch=False, removeFeatures=set(['index', 'datetime', 'meter', 'temp', 'Unnamed: 0'])):
+    def __init__(self, dataPath, categoryFeatures, shiftFeatures, shiftRange, isTorch=False, useTimeFeature=False, removeFeatures=set(['index', 'datetime', 'meter', 'temp', 'Unnamed: 0'])):
         
         self.dataPath = dataPath
         self.shiftFeatures = shiftFeatures
@@ -18,6 +19,7 @@ class Dataset:
         self.removeFeatures = removeFeatures
 
         self.isTorch = isTorch
+        self.useTimeFeature = useTimeFeature
         self.seqLength = shiftRange[1]- shiftRange[0]
         self.lagLength = shiftRange[0]
 
@@ -61,22 +63,46 @@ class Dataset:
     def _initDeepData(self):
         df = self._readData(self.dataPath)
         df = df.sort_values(by=['datetime'])
-        trainSet = df['meter'].values.reshape(-1, 1)
-        trainData = self.deepScaler.fit_transform(trainSet)
-        x, y = self._slidingWindows(trainData)
-        times = df[self.seqLength+self.lagLength:]['datetime']
+        trainData = df['meter'].values.reshape(-1, 1)
+        scaler = pre.MinMaxScaler().fit(trainData[:])
+        trainData = scaler.transform(trainData)
+
+
+        hourOfDay = df['hourOfDay'].values.reshape(-1, 1)
+        hourOfDay = pre.MinMaxScaler().fit_transform(hourOfDay)
+ 
+        dayOfWeek = df['dayOfWeek'].values.reshape(-1, 1)
+        dayOfWeek = pre.MinMaxScaler().fit_transform(dayOfWeek)
+
+        holiday = df['holiday'].values.reshape(-1, 1)
+        holiday = pre.MinMaxScaler().fit_transform(holiday)
+
+        dayOfYear = df['dayOfYear'].values.reshape(-1, 1)
+        dayOfYear = pre.MinMaxScaler().fit_transform(dayOfYear)
+
+        times = df[self.seqLength+self.lagLength:]['datetime'].values
+        x, y = self._slidingWindows(trainData, hourOfDay, dayOfWeek, dayOfYear, holiday)
+        
         # times = times
         return x, y, times
 
     
-    def _slidingWindows(self, data):
+    def _slidingWindows(self, data, hourOfDay, dayofWeek, dayOfYear, holiday):
         x = []
         y = []
         for i in range(len(data)-self.seqLength-self.lagLength):
             _x = data[i:(i+self.seqLength)]
+            if self.useTimeFeature:  
+                _hourOfDay = hourOfDay[i:(i+self.seqLength)]
+                _dayofWeek = dayofWeek[i:(i+self.seqLength)]
+                _dayOfYear = dayOfYear[i:(i+self.seqLength)]
+                _holiday = holiday[i:(i+self.seqLength)]
+                _x = np.hstack((_x,_hourOfDay, _dayofWeek, _dayOfYear, _holiday))
+            
             _y = data[i+self.seqLength+self.lagLength]
             x.append(_x)
             y.append(_y)
+
         return np.array(x),np.array(y)
 
 
@@ -86,7 +112,17 @@ class Dataset:
         df = self._shiftData(df=df)
         df = df.reset_index()
         features = [f for f in list(df.columns) if f not in self.removeFeatures]
-        df = df[features]   
+        df = df[features]  
+
+        hourOfDay = df['hourOfDay'].values.reshape(-1, 1)
+        dayOfWeek = df['dayOfWeek'].values.reshape(-1, 1)
+        holiday = df['holiday'].values.reshape(-1, 1)
+        dayOfYear = df['dayOfYear'].values.reshape(-1, 1)
+        df['hourOfDay'] = list(pre.MinMaxScaler().fit_transform(hourOfDay).ravel())
+        df['dayOfWeek'] = list(pre.MinMaxScaler().fit_transform(dayOfWeek).ravel())
+        df['holiday'] = list(pre.MinMaxScaler().fit_transform(holiday).ravel())
+        df['dayOfYear'] = list(pre.MinMaxScaler().fit_transform(dayOfYear).ravel())
+
         return self._splitData(df)
 
 
@@ -132,12 +168,9 @@ class Dataset:
             return input, y
 
 
-    
-
     def getTrainData(self, idxFrom, idxTo):
         if self.isTorch:   
             input, y = self._getPairData(idxFrom, idxTo)   
-            print(input.shape)
             return Variable(torch.Tensor(np.array(input))), Variable(torch.Tensor(np.array(y)))
     
         else:          

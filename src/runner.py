@@ -24,6 +24,7 @@ class Runner:
             self.trainer = DeepTrainer(learningRate=learningRate, model=self.model)
         #runner config
         self.lazy = lazy
+        self.learnManyTimes = []
         self.startPont = warmStartPoint
         self.predList, self.actualList, self.timeline, self.scoreList = [], [], [], []
 
@@ -56,6 +57,7 @@ class Runner:
         if self.isdeep:
             yPred = self.model.forward(XTrain).data.numpy()[0]
             # yPred = self.dataset.deepScaler.inverse_transform(yPred)[0]
+            # yTrain = yTrain[0][0]
             yTrain = self.yTrue[self.cur][0]
 
         else:
@@ -94,7 +96,7 @@ class Runner:
         self.nxt = self.cur + 1
 
 
-    def run(self, duration, name, interval, plot=False, record=True, verbose=True):
+    def run(self, duration, name, interval, lazyNum=24, lazyThreshold=0.1, plot=False, record=True, verbose=True):
         begin = time.time()
         self._warmStart()
         self.cur = self.startPont
@@ -102,18 +104,21 @@ class Runner:
 
         # streaming
         while time.time() - begin < duration and self.nxt < len(self.yTrue):
-            time.sleep(interval)
+            # time.sleep(interval)
             self._update()
             self._predict()
+        
 
             # evaluate model
-            if self.lazy and self.cur > 12:
-                acceptable = self._evaluate('mape', 12, 0.1)
+            if self.lazy and self.cur > lazyNum:
+                acceptable = self._evaluate('mape', 12, lazyThreshold)
                 if not acceptable:
-                    self._learnMany(numberOfData=12)
+        
+                    self.learnManyTimes.append(self.times[self.cur])
+                    self._learnMany(numberOfData=lazyNum)
             else:
                 self._learnOne()   
-               
+        end = time.time()
         if plot:
             plotlyplot(actual=self.actualList, prediction=self.predList,
                    times=self.times[:self.cur-1], plotname=name)
@@ -121,8 +126,13 @@ class Runner:
         if record:         
             dict = {'actual': self.actualList, 'predict': self.predList, 'time': self.timeline}        
             df = pd.DataFrame(dict)
-            df.to_csv('/Users/cicada/Documents/DTU_resource/Thesis/Incremental-learning-EL/src/results-'+name + '.csv')
-            # print(df.head())
+            df.to_csv('/Users/cicada/Documents/DTU_resource/Thesis/Incremental-learning-EL/src/results/results-'+name + '.csv')
             
         if verbose:
-            print(mean_absolute_percentage_error(self.actualList[200:], self.predList[200:]))
+            print(name+ ' mape: ')
+            print(mean_absolute_percentage_error(self.actualList[600:2000], self.predList[600:2000]))
+            print(name+ ' runnint time: ')
+            print(end-begin)
+            if self.lazy:
+                print('training times: ')
+                print(len(self.learnManyTimes)/len(self.timeline)*100, '%')

@@ -1,9 +1,4 @@
-import time
 import pickle
-import logging
-import numpy as np
-import pandas as pd
-import numpy as np
 import plotly.graph_objects as go
 from datetime import datetime, timedelta
 from matplotlib import pyplot as plt
@@ -53,7 +48,7 @@ def plotlyplot(actual, prediction, times, plotname):
         )
     )
     fig.show()
-    fig.write_html("/Users/cicada/Documents/DTU_resource/Thesis/Incremental-learning-EL/src/results-"+plotname+".html")
+    fig.write_html("/Users/cicada/Documents/DTU_resource/Thesis/Incremental-learning-EL/src/results/results-"+plotname+".html")
 
 
 # Time Formater ===============================================================

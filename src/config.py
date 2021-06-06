@@ -8,5 +8,5 @@ class LocalConfig:
     removeFeatures = set(['index', 'temp', 'Unnamed: 0', 'Unnamed: 0.1'])
     shiftRange = [12, 36]
     shiftFeatures = ['meter']
-    categoryFeatures = []
-    # categoryFeatures=['dayOfYear','hourOfDay', 'dayOfWeek', 'holiday', 'weekend']
+    # categoryFeatures = []
+    categoryFeatures=['dayOfYear','hourOfDay', 'dayOfWeek', 'holiday', 'weekend']

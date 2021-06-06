@@ -25,7 +25,7 @@ class Runner:
         #runner config
         self.lazy = lazy
         self.startPont = warmStartPoint
-        self.predList, self.actualList, self.scoreList = [], [], []
+        self.predList, self.actualList, self.timeline, self.scoreList = [], [], [], []
 
 
     def _warmStart(self):
@@ -54,10 +54,9 @@ class Runner:
             idxFrom=self.cur, idxTo=self.nxt)
         
         if self.isdeep:
-            yPred = self.model.forward(XTrain).data.numpy()
-            yPred = self.dataset.scaler.inverse_transform(yPred)[0]
-            yTrain = self.yTrue[self.cur]
-            print('ypred',yPred)
+            yPred = self.model.forward(XTrain).data.numpy()[0]
+            # yPred = self.dataset.deepScaler.inverse_transform(yPred)[0]
+            yTrain = self.yTrue[self.cur][0]
 
         else:
             yPred = self.model.predict(XTrain)
@@ -67,14 +66,17 @@ class Runner:
         if log:
             self.predList.append(yPred[0])
             self.actualList.append(yTrain)
+            self.timeline.append(self.times[self.cur])
 
 
     def _learnOne(self):
-        XTrain, yTrain = self.dataset.getTrainData(
-            idxFrom=self.cur, idxTo=self.nxt)
         if self.isdeep:
+            XTrain, yTrain = self.dataset.getTrainData(
+            idxFrom=self.cur-48, idxTo=self.nxt)
             self.trainer.learn(XTrain, yTrain)
         else:
+            XTrain, yTrain = self.dataset.getTrainData(
+            idxFrom=self.cur, idxTo=self.nxt)
             self.model.learn(XTrain, yTrain)
 
 
@@ -99,7 +101,7 @@ class Runner:
         acceptable = False
 
         # streaming
-        while time.time() - begin < duration:
+        while time.time() - begin < duration and self.nxt < len(self.yTrue):
             time.sleep(interval)
             self._update()
             self._predict()
@@ -117,9 +119,10 @@ class Runner:
                    times=self.times[:self.cur-1], plotname=name)
 
         if record:         
-            dict = {'actual': self.actualList, 'predict': self.predList, 'time': self.times[:self.cur-1]}         
+            dict = {'actual': self.actualList, 'predict': self.predList, 'time': self.timeline}        
             df = pd.DataFrame(dict)
-            df.to_csv(name + 'result.csv')
-
+            df.to_csv('/Users/cicada/Documents/DTU_resource/Thesis/Incremental-learning-EL/src/results-'+name + '.csv')
+            # print(df.head())
+            
         if verbose:
             print(mean_absolute_percentage_error(self.actualList[200:], self.predList[200:]))

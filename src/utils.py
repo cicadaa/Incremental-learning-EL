@@ -53,7 +53,7 @@ def plotlyplot(actual, prediction, times, plotname):
         )
     )
     fig.show()
-    fig.write_html(plotname+".html")
+    fig.write_html("/Users/cicada/Documents/DTU_resource/Thesis/Incremental-learning-EL/src/results-"+plotname+".html")
 
 
 # Time Formater ===============================================================

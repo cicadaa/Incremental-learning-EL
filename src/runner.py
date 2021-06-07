@@ -113,7 +113,6 @@ class Runner:
             if self.lazy and self.cur > lazyNum:
                 acceptable = self._evaluate('mape', 12, lazyThreshold)
                 if not acceptable:
-        
                     self.learnManyTimes.append(self.times[self.cur])
                     self._learnMany(numberOfData=lazyNum)
             else:

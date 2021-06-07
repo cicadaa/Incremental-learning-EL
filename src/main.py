@@ -24,9 +24,9 @@ if __name__ == "__main__":
 
     # olstm = OLSTM(num_classes=1, input_size=1, hidden_size=24, num_layers=1)
 
-    dataset_osvr = Dataset(dataPath=dataPath, shiftFeatures=['meter'], 
-                            categoryFeatures=['dayOfYear','hourOfDay', 'dayOfWeek', 'holiday'],
-                            shiftRange=shiftRange, removeFeatures=removeFeatures, isTorch=False, useTimeFeature=False)
+    # dataset_osvr = Dataset(dataPath=dataPath, shiftFeatures=['meter'], 
+                            # categoryFeatures=['dayOfYear','hourOfDay', 'dayOfWeek', 'holiday'],
+                            # shiftRange=shiftRange, removeFeatures=removeFeatures, isTorch=False, useTimeFeature=False)
 
     # dataset_olstm = Dataset(dataPath=dataPath, shiftFeatures=['meter'], categoryFeatures=categoryFeatures,
     #                   shiftRange=shiftRange, removeFeatures=removeFeatures, isTorch=True, useTimeFeature=False)
@@ -45,27 +45,20 @@ if __name__ == "__main__":
     # '''best-0.0425'''
 
 
-
-    # # #01-olstm-
-    # runner = Runner(warmStartPoint=10, dataset=dataset_olstm, model=olstm, deep=True, learningRate=learning_rate, lazy=False)
-    # runner.run(duration=20, interval=0, name='olstm', plot=True, record=True, verbose=True)
-
-
-
     #TESTS===========================================================================================================
 
     #01-olstm ************************************************************************************
     '''
     best result: 
     01_olstm mape: 
-    0.04324058522569778
+    0.07626588975022867
     01_olstm runnint time: 
-    707.5335872173309s
+    646.5130829811096
 
     lazy: False
     features: lag feature [12, 36] + ['dayOfYear','hourOfDay', 'dayOfWeek', 'holiday']
     learn one: learn 48 batches
-    warm start: 10
+    warm start: 1
     learning rate:0.01
     hidden size: 168
     input size: 5
@@ -75,7 +68,7 @@ if __name__ == "__main__":
     # dataset = Dataset(dataPath=dataPath, shiftFeatures=['meter'], categoryFeatures=categoryFeatures,
     #                   shiftRange=[12,36], removeFeatures=removeFeatures, isTorch=True, useTimeFeature=True)
 
-    # runner = Runner(warmStartPoint=24, dataset=dataset, model=model, deep=True, learningRate=0.01, lazy=False)
+    # runner = Runner(warmStartPoint=1, dataset=dataset, model=model, deep=True, learningRate=0.01, lazy=False)
     # runner.run(duration=1000, interval=0, name='01_olstm', plot=True, record=True, verbose=True)
 
 
@@ -83,14 +76,14 @@ if __name__ == "__main__":
     '''
     best result: 
     02_olstm mape: 
-    0.05154598610502722
+    0.04932617872727324
     02_olstm runnint time: 
-    145.19066190719604
+    149.98655915260315
 
     lazy: False
     features: lag feature [12, 36] 
     learn one: learn 48 batches
-    warm start: 10
+    warm start: 1
     learning rate:0.01
     hidden size: 24
     input size: 1
@@ -99,7 +92,7 @@ if __name__ == "__main__":
     # dataset = Dataset(dataPath=dataPath, shiftFeatures=['meter'], categoryFeatures=categoryFeatures,
     #                   shiftRange=[12,36], removeFeatures=removeFeatures, isTorch=True, useTimeFeature=False)
 
-    # runner = Runner(warmStartPoint=24, dataset=dataset, model=model, deep=True, learningRate=0.01, lazy=False)
+    # runner = Runner(warmStartPoint=1, dataset=dataset, model=model, deep=True, learningRate=0.01, lazy=False)
     # runner.run(duration=1000, interval=0, name='02_olstm', plot=True, record=True, verbose=True)
 
 
@@ -108,28 +101,28 @@ if __name__ == "__main__":
     best result: 
     
     03_lolstm mape: 
-    0.052164478377387656
+    0.0893665755172856
     03_lolstm runnint time: 
-    164.11038184165955
+    231.88226413726807
     training times: 
-    23.05614619849434 %
+    37.83457782883401 %
 
     lazy: True
     features: lag feature [12, 36] + ['dayOfYear','hourOfDay', 'dayOfWeek', 'holiday']
     learn one: learn 48 batches
     learn many/lazy num: 48
     lazyThreshold=0.07
-    warm start: 10
+    warm start: 1
     learning rate:0.01
     hidden size: 168
     input size: 5
     '''
-    # model = OLSTM(num_classes=1, input_size=5, hidden_size=168, num_layers=1)
-    # dataset = Dataset(dataPath=dataPath, shiftFeatures=['meter'], categoryFeatures=categoryFeatures,
-    #                   shiftRange=[12,36], removeFeatures=removeFeatures, isTorch=True, useTimeFeature=True)
+    model = OLSTM(num_classes=1, input_size=5, hidden_size=168, num_layers=1)
+    dataset = Dataset(dataPath=dataPath, shiftFeatures=['meter'], categoryFeatures=categoryFeatures,
+                      shiftRange=[12,36], removeFeatures=removeFeatures, isTorch=True, useTimeFeature=True)
 
-    # runner = Runner(warmStartPoint=10, dataset=dataset, model=model, deep=True, learningRate=0.01, lazy=True)
-    # runner.run(duration=2000, interval=0, lazyThreshold=0.07, lazyNum=48, name='03_lolstm', plot=True, record=True, verbose=True)
+    runner = Runner(warmStartPoint=1, dataset=dataset, model=model, deep=True, learningRate=0.01, lazy=True)
+    runner.run(duration=2000, interval=0, lazyThreshold=0.07, lazyNum=48, name='03_lolstm', plot=True, record=True, verbose=True)
 
     
     #04-osvr  ************************************************************************************
@@ -190,9 +183,9 @@ if __name__ == "__main__":
     warm start: 1
     eta0:0.9
     '''
-    model = OSVRModel(learning_rate='constant', eta0=0.9, loss='epsilon_insensitive', penalty='l2')
-    dataset = Dataset(dataPath=dataPath, shiftFeatures=['meter'], categoryFeatures=[],
-                      shiftRange=shiftRange, removeFeatures=removeFeatures, isTorch=False, useTimeFeature=False)
+    # model = OSVRModel(learning_rate='constant', eta0=0.9, loss='epsilon_insensitive', penalty='l2')
+    # dataset = Dataset(dataPath=dataPath, shiftFeatures=['meter'], categoryFeatures=[],
+    #                   shiftRange=shiftRange, removeFeatures=removeFeatures, isTorch=False, useTimeFeature=False)
 
-    runner = Runner(warmStartPoint=1, dataset=dataset, model=model, deep=False, learningRate=0.01, lazy=True)
-    runner.run(duration=1000, interval=0, lazyThreshold=0.07, lazyNum=48, name='06_osvr', plot=True, record=True, verbose=True)
+    # runner = Runner(warmStartPoint=1, dataset=dataset, model=model, deep=False, learningRate=0.01, lazy=True)
+    # runner.run(duration=1000, interval=0, lazyThreshold=0.07, lazyNum=48, name='06_osvr', plot=True, record=True, verbose=True)

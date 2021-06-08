@@ -129,7 +129,7 @@ class Runner:
             
         if verbose:
             print(name+ ' mape: ')
-            print(mean_absolute_percentage_error(self.actualList[600:2000], self.predList[600:2000]))
+            print(mean_absolute_percentage_error(self.actualList[600:9000], self.predList[600:9000]))
             print(name+ ' runnint time: ')
             print(end-begin)
             if self.lazy:
